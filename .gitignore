@@ -1,0 +1,24 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Runtime state
+.braidwork/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Editors
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.swp
+*~

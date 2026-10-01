@@ -1,0 +1,16 @@
+[package]
+name = "braidwork-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "braidwork"
+path = "src/main.rs"
+
+[dependencies]
+braidwork-core = { path = "../braidwork-core" }
+braidwork-store = { path = "../braidwork-store" }
+
+[lints]
+workspace = true
