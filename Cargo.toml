@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "crates/braidwork-core",
     "crates/braidwork-store",
+    "crates/braidwork-project",
     "crates/braidwork-cli",
 ]
 
@@ -12,6 +13,7 @@ edition = "2024"
 license = "Apache-2.0"
 
 [workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
 rusqlite = { version = "0.40", default-features = false, features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

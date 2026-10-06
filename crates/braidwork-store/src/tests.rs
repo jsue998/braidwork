@@ -871,3 +871,82 @@ fn task_reconstruction_enforces_domain_rules_even_for_corrupt_persisted_rows() {
         .unwrap();
     assert_eq!(enabled, 1);
 }
+
+#[test]
+fn resource_and_task_lists_are_empty_in_a_new_store() {
+    let store = SqliteStore::open_in_memory().unwrap();
+    assert!(store.list_resources().unwrap().is_empty());
+    assert!(store.list_tasks().unwrap().is_empty());
+}
+
+#[test]
+fn resource_list_returns_domain_values_in_id_order() {
+    let mut store = SqliteStore::open_in_memory().unwrap();
+    let fixture = Fixture::new();
+    let mut expected = Vec::new();
+    for name in ["z-resource", "a-resource", "m-resource"] {
+        let resource = Resource {
+            id: ResourceId::new(name).unwrap(),
+            ..fixture.resource.clone()
+        };
+        store.insert_resource(&resource).unwrap();
+        expected.push(resource);
+    }
+    expected.sort_by(|a, b| a.id.cmp(&b.id));
+    assert_eq!(store.list_resources().unwrap(), expected);
+    for resource in expected {
+        assert_eq!(store.get_resource(&resource.id).unwrap(), resource);
+    }
+}
+
+#[test]
+fn task_list_preserves_relationships_and_all_statuses_in_id_order() {
+    let (mut store, fixture) = populated();
+    let mut completed = task(
+        "completed",
+        Some("parent"),
+        &["b-prerequisite", "a-prerequisite"],
+    );
+    completed.set_status(TaskStatus::Completed);
+    store.insert_task(&completed).unwrap();
+    let mut expected = vec![fixture.task, fixture.parent, completed];
+    expected.extend(fixture.prerequisites);
+    expected.sort_by(|a, b| a.id().cmp(b.id()));
+    let listed = store.list_tasks().unwrap();
+    assert_eq!(listed, expected);
+    for task in listed {
+        assert_eq!(store.get_task(task.id()).unwrap(), task);
+    }
+}
+
+#[test]
+fn lists_apply_the_same_reconstruction_checks_as_getters() {
+    let (store, fixture) = populated();
+    // Use a resource without receipt references to simulate externally invalid IDs.
+    store.connection.execute("INSERT INTO resources VALUES (' invalid', 'name', 'provider', 'manual', 'normal', 'available')", []).unwrap();
+    assert!(matches!(
+        store.list_resources(),
+        Err(StoreError::Reconstruction(ReconstructionError::InvalidId(
+            _
+        )))
+    ));
+    store
+        .connection
+        .pragma_update(None, "ignore_check_constraints", true)
+        .unwrap();
+    store
+        .connection
+        .execute(
+            "UPDATE tasks SET parent = id WHERE id = ?1",
+            [fixture.task.id().as_str()],
+        )
+        .unwrap();
+    store
+        .connection
+        .pragma_update(None, "ignore_check_constraints", false)
+        .unwrap();
+    assert!(matches!(
+        store.list_tasks(),
+        Err(StoreError::Reconstruction(ReconstructionError::Task(_)))
+    ));
+}

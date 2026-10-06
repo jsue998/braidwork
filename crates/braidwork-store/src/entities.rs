@@ -6,7 +6,7 @@ use braidwork_core::{
     resource::Resource,
     task::Task,
 };
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, Row, params};
 
 use crate::{
     EntityId, ReconstructionError, SqliteStore, StoreError,
@@ -51,17 +51,46 @@ impl SqliteStore {
             "SELECT id, name, provider, access_mode, scarcity, status FROM resources WHERE id = ?1",
             resource_id.as_str(),
             EntityId::Resource(resource_id.clone()),
-            |row| {
-                Ok(Resource {
-                    id: id(row, "id")?,
-                    name: column(row, "name")?,
-                    provider: column(row, "provider")?,
-                    access_mode: enum_column(row, "access_mode")?,
-                    scarcity: enum_column(row, "scarcity")?,
-                    status: enum_column(row, "status")?,
-                })
-            },
+            resource_from_row,
         )
+    }
+
+    /// Lists resources in deterministic identifier order.
+    ///
+    /// # Errors
+    /// Returns a database or reconstruction error, using the same validation as
+    /// [`Self::get_resource`]. An empty store returns an empty vector.
+    pub fn list_resources(&self) -> Result<Vec<Resource>, StoreError> {
+        let mut statement = self.connection.prepare(
+            "SELECT id, name, provider, access_mode, scarcity, status FROM resources ORDER BY id",
+        )?;
+        let mut rows = statement.query([])?;
+        let mut resources = Vec::new();
+        while let Some(row) = rows.next()? {
+            resources.push(resource_from_row(row)?);
+        }
+        Ok(resources)
+    }
+
+    /// Lists tasks and their dependencies in one consistent snapshot, by ID.
+    ///
+    /// # Errors
+    /// Returns a database or reconstruction error, using the same validation as
+    /// [`Self::get_task`]. An empty store returns an empty vector.
+    pub fn list_tasks(&self) -> Result<Vec<Task>, StoreError> {
+        let transaction = self.connection.unchecked_transaction()?;
+        let tasks = {
+            let mut statement = transaction
+                .prepare("SELECT id, title, objective, parent, status FROM tasks ORDER BY id")?;
+            let mut rows = statement.query([])?;
+            let mut tasks = Vec::new();
+            while let Some(row) = rows.next()? {
+                tasks.push(task_from_row(&transaction, row)?);
+            }
+            tasks
+        };
+        transaction.commit()?;
+        Ok(tasks)
     }
 
     /// Atomically inserts a task and its prerequisites.
@@ -105,25 +134,7 @@ impl SqliteStore {
             "SELECT id, title, objective, parent, status FROM tasks WHERE id = ?1",
             task_id.as_str(),
             EntityId::Task(task_id.clone()),
-            |row| {
-                let stored_id: TaskId = id(row, "id")?;
-                let dependencies = related_ids(
-                    &transaction,
-                    "SELECT dependency_id FROM task_dependencies WHERE task_id = ?1 ORDER BY dependency_id",
-                    stored_id.as_str(),
-                    "dependency_id",
-                )?;
-                let mut task = Task::new(
-                    stored_id,
-                    column::<String>(row, "title")?,
-                    column::<String>(row, "objective")?,
-                    optional_id(row, "parent")?,
-                    dependencies,
-                )
-                .map_err(ReconstructionError::Task)?;
-                task.set_status(enum_column(row, "status")?);
-                Ok(task)
-            },
+            |row| task_from_row(&transaction, row),
         )?;
         transaction.commit()?;
         Ok(task)
@@ -338,4 +349,35 @@ fn related_ids<T: TryFrom<String, Error = InvalidId>>(
         ids.push(id(row, column_name)?);
     }
     Ok(ids)
+}
+
+fn resource_from_row(row: &Row<'_>) -> Result<Resource, StoreError> {
+    Ok(Resource {
+        id: id(row, "id")?,
+        name: column(row, "name")?,
+        provider: column(row, "provider")?,
+        access_mode: enum_column(row, "access_mode")?,
+        scarcity: enum_column(row, "scarcity")?,
+        status: enum_column(row, "status")?,
+    })
+}
+
+fn task_from_row(connection: &Connection, row: &Row<'_>) -> Result<Task, StoreError> {
+    let stored_id: TaskId = id(row, "id")?;
+    let dependencies = related_ids(
+        connection,
+        "SELECT dependency_id FROM task_dependencies WHERE task_id = ?1 ORDER BY dependency_id",
+        stored_id.as_str(),
+        "dependency_id",
+    )?;
+    let mut task = Task::new(
+        stored_id,
+        column::<String>(row, "title")?,
+        column::<String>(row, "objective")?,
+        optional_id(row, "parent")?,
+        dependencies,
+    )
+    .map_err(ReconstructionError::Task)?;
+    task.set_status(enum_column(row, "status")?);
+    Ok(task)
 }

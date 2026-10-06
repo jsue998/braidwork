@@ -74,7 +74,9 @@ belong to this version; incompatible format changes will need a migration.
 ## API, integrity, and atomicity
 
 The public API exposes `insert_resource`, `insert_task`, `insert_capsule`,
-`insert_artifact`, `insert_receipt`, and the corresponding `get_*` methods.
+`insert_artifact`, `insert_receipt`, and the corresponding `get_*` methods. `list_resources` and `list_tasks` return
+validated core entities in deterministic ID order; compound task listing reads
+all rows and dependencies within one database snapshot.
 Insertions take domain entities by reference; getters take the matching typed ID
 and return a domain entity or a typed error. There are no updates or deletes.
 
@@ -114,7 +116,8 @@ preserves specific ID, task, JSON, unsigned-number, and column failures.
 
 ## Deliberately deferred
 
-Project initialization/layout, CLI commands, updates/deletes, artifact bytes,
+Project initialization/layout and CLI behavior belong to the separate
+[project runtime](PROJECT_RUNTIME.md). Updates/deletes, artifact bytes,
 hashing/filesystem stores, graph traversal/cycle detection, scheduling, execution,
 verification runners, context compilation/retrieval, provider integrations, and
 all asynchronous or server infrastructure remain outside this milestone.
