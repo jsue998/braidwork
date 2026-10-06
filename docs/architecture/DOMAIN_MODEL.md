@@ -95,9 +95,10 @@ by callers, never computed by the core.
 Public domain data supports Serde; JSON is only a test format and the wire format
 is not yet stable. Entity links use typed IDs, not nested provider responses.
 Checking referenced entity existence and agreement between task, capsule, and
-artifact provenance requires canonical project state and belongs to a future
-application/project layer. Capsules and receipts must be retained there to make
-their references auditable.
+artifact provenance requires canonical project state, outside core. The SQLite
+store now enforces these relational references and provenance constraints; see
+[Canonical persistence](PERSISTENCE.md). Retaining capsules and receipts in that
+state makes their references auditable.
 
 ## Deliberately deferred
 
