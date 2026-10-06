@@ -26,6 +26,8 @@ fn capsule(id: &str, task_id: &TaskId) -> TaskCapsule {
         id: CapsuleId::new(id).unwrap(),
         task_id: task_id.clone(),
         role: "implementer".into(),
+        mission: "Produce reliable work".into(),
+        instructions: vec!["Explain decisions".into()],
         objective: "Handle empty input".into(),
         inputs: vec![
             ContextInput::Inline {
@@ -214,11 +216,17 @@ fn new_database_applies_current_schema_and_enables_foreign_keys() {
     assert_eq!(
         tables,
         [
+            "agent_specs",
             "artifacts",
+            "assignment_capsules",
+            "assignment_receipts",
+            "assignments",
             "capsules",
+            "delegations",
             "receipt_artifacts",
             "receipts",
             "resources",
+            "sessions",
             "task_dependencies",
             "tasks"
         ]
@@ -950,3 +958,6 @@ fn lists_apply_the_same_reconstruction_checks_as_getters() {
         Err(StoreError::Reconstruction(ReconstructionError::Task(_)))
     ));
 }
+
+#[path = "execution_tests.rs"]
+mod execution;

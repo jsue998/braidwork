@@ -149,25 +149,7 @@ impl SqliteStore {
     /// Returns [`StoreError::AlreadyExists`] for a duplicate ID,
     /// [`StoreError::Integrity`] for a missing task, or a database/serialization error.
     pub fn insert_capsule(&mut self, capsule: &TaskCapsule) -> Result<(), StoreError> {
-        self.connection
-            .execute(
-                "INSERT INTO capsules (id, task_id, role, objective, max_estimated_tokens,
-                inputs, constraints, acceptance_criteria, expected_outputs)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-                params![
-                    capsule.id.as_str(),
-                    capsule.task_id.as_str(),
-                    capsule.role,
-                    capsule.objective,
-                    capsule.context_budget.max_estimated_tokens.to_string(),
-                    serde_json::to_string(&capsule.inputs)?,
-                    serde_json::to_string(&capsule.constraints)?,
-                    serde_json::to_string(&capsule.acceptance_criteria)?,
-                    serde_json::to_string(&capsule.expected_outputs)?
-                ],
-            )
-            .map_err(|error| insertion_error(error, EntityId::Capsule(capsule.id.clone())))?;
-        Ok(())
+        insert_capsule_row(&self.connection, capsule)
     }
 
     /// Reads a portable capsule, validating its IDs and decoding nested domain data.
@@ -178,7 +160,7 @@ impl SqliteStore {
         read(
             &self.connection,
             "SELECT id, task_id, role, objective, max_estimated_tokens, inputs, constraints,
-                acceptance_criteria, expected_outputs FROM capsules WHERE id = ?1",
+                acceptance_criteria, expected_outputs, mission, instructions FROM capsules WHERE id = ?1",
             capsule_id.as_str(),
             EntityId::Capsule(capsule_id.clone()),
             |row| {
@@ -186,6 +168,8 @@ impl SqliteStore {
                     id: id(row, "id")?,
                     task_id: id(row, "task_id")?,
                     role: column(row, "role")?,
+                    mission: column(row, "mission")?,
+                    instructions: json(row, "instructions")?,
                     objective: column(row, "objective")?,
                     inputs: json(row, "inputs")?,
                     constraints: json(row, "constraints")?,
@@ -207,21 +191,7 @@ impl SqliteStore {
     /// Returns [`StoreError::AlreadyExists`] for a duplicate ID,
     /// [`StoreError::Integrity`] for a missing task, or a database/serialization error.
     pub fn insert_artifact(&mut self, artifact: &Artifact) -> Result<(), StoreError> {
-        self.connection
-            .execute(
-                "INSERT INTO artifacts (id, task_id, kind, content_ref, media_type, size_bytes)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                params![
-                    artifact.id.as_str(),
-                    artifact.task_id.as_str(),
-                    enum_text(artifact.kind)?,
-                    artifact.content_ref,
-                    artifact.media_type,
-                    artifact.size_bytes.map(|value| value.to_string())
-                ],
-            )
-            .map_err(|error| insertion_error(error, EntityId::Artifact(artifact.id.clone())))?;
-        Ok(())
+        insert_artifact_row(&self.connection, artifact)
     }
 
     /// Reads artifact metadata, preserving unknown size separately from known zero.
@@ -260,38 +230,7 @@ impl SqliteStore {
     /// a database/serialization error. Every failure rolls back the whole receipt.
     pub fn insert_receipt(&mut self, receipt: &Receipt) -> Result<(), StoreError> {
         let transaction = self.connection.transaction()?;
-        transaction
-            .execute(
-                "INSERT INTO receipts (id, task_id, capsule_id, resource_id, model_id,
-                access_mode, execution, verification, usage)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-                params![
-                    receipt.id.as_str(),
-                    receipt.task_id.as_str(),
-                    receipt.capsule_id.as_str(),
-                    receipt.resource_id.as_str(),
-                    receipt.model_id.as_ref().map(ModelId::as_str),
-                    enum_text(receipt.access_mode)?,
-                    serde_json::to_string(&receipt.execution)?,
-                    serde_json::to_string(&receipt.verification)?,
-                    serde_json::to_string(&receipt.usage)?
-                ],
-            )
-            .map_err(|error| insertion_error(error, EntityId::Receipt(receipt.id.clone())))?;
-        for (position, artifact) in (0_i64..).zip(&receipt.artifacts) {
-            transaction
-                .execute(
-                    "INSERT INTO receipt_artifacts (receipt_id, task_id, position, artifact_id)
-                 VALUES (?1, ?2, ?3, ?4)",
-                    params![
-                        receipt.id.as_str(),
-                        receipt.task_id.as_str(),
-                        position,
-                        artifact.as_str()
-                    ],
-                )
-                .map_err(integrity_error)?;
-        }
+        insert_receipt_row(&transaction, receipt)?;
         transaction.commit()?;
         Ok(())
     }
@@ -380,4 +319,91 @@ fn task_from_row(connection: &Connection, row: &Row<'_>) -> Result<Task, StoreEr
     .map_err(ReconstructionError::Task)?;
     task.set_status(enum_column(row, "status")?);
     Ok(task)
+}
+
+pub(crate) fn insert_capsule_row(
+    connection: &Connection,
+    capsule: &TaskCapsule,
+) -> Result<(), StoreError> {
+    connection
+        .execute(
+            "INSERT INTO capsules (id, task_id, role, objective, max_estimated_tokens,
+                inputs, constraints, acceptance_criteria, expected_outputs, mission, instructions)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                capsule.id.as_str(),
+                capsule.task_id.as_str(),
+                capsule.role,
+                capsule.objective,
+                capsule.context_budget.max_estimated_tokens.to_string(),
+                serde_json::to_string(&capsule.inputs)?,
+                serde_json::to_string(&capsule.constraints)?,
+                serde_json::to_string(&capsule.acceptance_criteria)?,
+                serde_json::to_string(&capsule.expected_outputs)?,
+                capsule.mission,
+                serde_json::to_string(&capsule.instructions)?
+            ],
+        )
+        .map_err(|error| insertion_error(error, EntityId::Capsule(capsule.id.clone())))?;
+    Ok(())
+}
+
+pub(crate) fn insert_artifact_row(
+    connection: &Connection,
+    artifact: &Artifact,
+) -> Result<(), StoreError> {
+    connection
+        .execute(
+            "INSERT INTO artifacts (id, task_id, kind, content_ref, media_type, size_bytes)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                artifact.id.as_str(),
+                artifact.task_id.as_str(),
+                enum_text(artifact.kind)?,
+                artifact.content_ref,
+                artifact.media_type,
+                artifact.size_bytes.map(|value| value.to_string())
+            ],
+        )
+        .map_err(|error| insertion_error(error, EntityId::Artifact(artifact.id.clone())))?;
+    Ok(())
+}
+
+pub(crate) fn insert_receipt_row(
+    connection: &Connection,
+    receipt: &Receipt,
+) -> Result<(), StoreError> {
+    connection
+        .execute(
+            "INSERT INTO receipts (id, task_id, capsule_id, resource_id, model_id,
+                access_mode, execution, verification, usage)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                receipt.id.as_str(),
+                receipt.task_id.as_str(),
+                receipt.capsule_id.as_str(),
+                receipt.resource_id.as_str(),
+                receipt.model_id.as_ref().map(ModelId::as_str),
+                enum_text(receipt.access_mode)?,
+                serde_json::to_string(&receipt.execution)?,
+                serde_json::to_string(&receipt.verification)?,
+                serde_json::to_string(&receipt.usage)?
+            ],
+        )
+        .map_err(|error| insertion_error(error, EntityId::Receipt(receipt.id.clone())))?;
+    for (position, artifact) in (0_i64..).zip(&receipt.artifacts) {
+        connection
+            .execute(
+                "INSERT INTO receipt_artifacts (receipt_id, task_id, position, artifact_id)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    receipt.id.as_str(),
+                    receipt.task_id.as_str(),
+                    position,
+                    artifact.as_str()
+                ],
+            )
+            .map_err(integrity_error)?;
+    }
+    Ok(())
 }

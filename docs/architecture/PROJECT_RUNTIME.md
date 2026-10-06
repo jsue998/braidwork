@@ -1,11 +1,12 @@
 # Project runtime and CLI
 
 `braidwork-project` owns the lifecycle of a local Braidwork project: its root,
-marker, database location, initialization, opening, and upward discovery. It
+marker, database location, initialization, opening, and upward discovery. It also
+owns local artifact content and composes the Manual Bridge. It
 owns a `SqliteStore` and exposes domain reads and insertions through `store()`
 and `store_mut()`. The CLI parses user input, constructs core entities, invokes
 project/store operations, and presents results. It contains no layout management
-or SQL. Core is unchanged and contains only domain semantics; store assumes no
+or SQL. Core contains only domain semantics; store assumes no
 `.braidwork/` directory and keeps its connection private.
 
 ```text
@@ -17,6 +18,7 @@ braidwork-cli
  ▼
 braidwork-project
  ├── project.json
+ ├── artifacts/ (lazy content)
  │
  └── braidwork-store
         │
@@ -33,10 +35,11 @@ braidwork-project
 <project-root>/
 └── .braidwork/
     ├── project.json
-    └── braidwork.db
+    ├── braidwork.db
+    └── artifacts/           # lazy, first content write
 ```
 
-The three names are constants in `braidwork-project`. The explicit marker,
+The layout names are constants in `braidwork-project`. The explicit marker,
 not a SQLite file alone, identifies the project. Its required fields are:
 
 ```json
@@ -47,7 +50,7 @@ not a SQLite file alone, identifies the project. Its required fields are:
 ```
 
 `PROJECT_FORMAT_VERSION` defines the supported marker version once. It is
-independent of the store schema version, currently 1. Metadata has no project
+independent of the store schema version, currently 2. Metadata has no project
 UUID or timestamps. A human name must contain non-whitespace text; valid names
 retain their exact representation, including exterior whitespace. Names are
 not IDs and are not converted to slugs. The default name is the root directory's
@@ -88,6 +91,13 @@ Accessors expose `root`, `state_path`, `database_path`, validated `metadata`,
 `format_version`, `schema_version`, `store`, and `store_mut`. There is no generic
 repository trait, application crate, or public database connection.
 
+Execution APIs add `create_assignment`, `add_delegation`, `prepare_capsule`,
+`render_capsule`, `dispatch`, and `ingest`, with explicit preparation/ingestion
+options. `write_artifact_content` and `read_artifact_content` own portable content
+references; they do not make core aware of paths. UUID v4 identity generation and
+filesystem/SQLite composition live here. See [Manual Bridge](MANUAL_BRIDGE.md)
+for exact content layout and its atomicity boundary.
+
 ## CLI contract
 
 ```text
@@ -99,11 +109,18 @@ braidwork [--project ROOT] [--json]
  │    │         [--access-mode MODE] [--scarcity SCARCITY] [--status STATUS]
  │    ├── list
  │    └── show ID
- └── task
-      ├── add ID --title TITLE --objective OBJECTIVE
-      │         [--parent TASK_ID] [--depends-on TASK_ID]...
-      ├── list
-      └── show ID
+ ├── task
+ │    ├── add ID --title TITLE --objective OBJECTIVE
+ │    │         [--parent TASK_ID] [--depends-on TASK_ID]...
+ │    ├── list
+ │    └── show ID
+ ├── agent add|list|show
+ ├── session add|list|show
+ ├── assignment create|list|show
+ ├── delegation add|list|show
+ ├── capsule prepare|render
+ ├── dispatch ASSIGNMENT_ID [--mark-dispatched]
+ └── ingest ASSIGNMENT_ID (--file PATH | --stdin)
 ```
 
 `--help` and `--version` require no project. Global flags can also follow
@@ -134,6 +151,14 @@ plus `resource_count` and `tasks` containing `total`, `pending`, `in_progress`, 
 `completed`. JSON is the only successful stdout content in this mode. This format
 is defined for this version and carries no 1.0 compatibility guarantee.
 
+Execution add/create commands return the actual domain entity; agent show requires
+an exact revision (default 1). Assignment show returns `assignment`, optional
+`capsule`, and optional `receipt`. Capsule render returns `{capsule_id, rendered}`;
+dispatch returns its allocation/session/resource/agent/task/rendered bundle;
+ingest returns `{assignment, artifact, receipt}`. All new lists are arrays in
+JSON mode. Human output uses field displays and copy-ready rendered Markdown.
+CLI implementation separates args, commands, output, errors, and manual input I/O.
+
 ## Errors and scope
 
 `ProjectError` distinguishes not-found discovery, duplicate initialization,
@@ -143,14 +168,21 @@ path-aware I/O failures, and typed store failures. Metadata accessors expose
 validated immutable fields. Library errors retain their sources, without
 converting them to strings or using `anyhow`.
 
+Execution adds typed content failures, identity/delegation construction errors,
+zero-budget selected-context rejection, and ingestion cleanup failure preserving
+both the database and filesystem errors. Context/input-file I/O is a CLI boundary
+concern; project retains reusable byte/content operations.
+
 The CLI reports errors on stderr, exits nonzero, and prints no default backtrace.
 ID parsing reuses core validation, and missing/duplicate entities retain store
-semantics. Integrity errors explain that parent and prerequisite tasks must
-already exist. Normal human and JSON results go to stdout.
+semantics. Task-insertion integrity errors retain the parent/prerequisite hint;
+new relationships report the specific missing session/resource/agent revision/
+assignment. Workflow/provenance/policy failures retain typed context. Normal
+human and JSON results go to stdout.
 
 Project, store, and real-binary integration tests use temporary directories.
 There are no interactive prompts, provider checks, or network operations.
-Updates/deletes, task transitions, capsule/artifact/receipt commands, dispatch,
-manual bridge, context compilation, verification runners, artifact content,
-Git integration, scheduling, providers, plugins, servers, and async infrastructure
+General updates/deletes, task transitions, standalone artifact/receipt command
+groups, context compilation, verification runners, Git integration, scheduling,
+dynamic planning, provider automation, plugins, GUI, servers, and async infrastructure
 remain deliberately deferred. No placeholder commands are introduced.

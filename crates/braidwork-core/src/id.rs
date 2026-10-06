@@ -106,3 +106,20 @@ define_id!(
     ReceiptId,
     "Identifies an auditable execution and verification record."
 );
+
+define_id!(
+    AgentSpecId,
+    "Identifies an agent definition whose revisions are retained separately."
+);
+define_id!(
+    SessionId,
+    "Identifies a persistent execution conversation or instance."
+);
+define_id!(
+    AssignmentId,
+    "Identifies work allocated to one session and agent revision."
+);
+define_id!(
+    DelegationId,
+    "Identifies a recorded act of delegating between assignments."
+);

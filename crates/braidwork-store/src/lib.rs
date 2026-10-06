@@ -1,17 +1,20 @@
 //! Canonical, synchronous `SQLite` persistence for Braidwork domain entities.
 //!
-//! Opening a store enables foreign keys and transactionally applies the initial
-//! schema. Writes are explicit insertions: existing entities are never replaced.
-//! Domain reconstruction validates identifiers and task relationships, while SQL
-//! constraints enforce reference existence and receipt/task provenance.
+//! Opening a store enables foreign keys and transactionally applies schema
+//! migrations. Entity writes are explicit insertions: history is never replaced.
+//! Specific manual-workflow operations also record assignment handoff status.
+//! Reconstruction validates identifiers, revisions, and domain relationships;
+//! SQL constraints enforce reference existence and execution provenance.
 
 use std::path::Path;
 
 use rusqlite::Connection;
 
+mod bridge;
 mod codec;
 mod entities;
 mod error;
+mod execution;
 mod migrations;
 
 pub use error::{EntityId, ReconstructionError, StoreError};

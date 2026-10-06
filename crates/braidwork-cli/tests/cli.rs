@@ -51,7 +51,7 @@ fn binary_end_to_end_persists_resources_and_tasks_across_processes_and_discovery
     let init = json(root, &["--json", "init", "--name", "compiler-lab"]);
     assert_eq!(init["name"], "compiler-lab");
     assert_eq!(init["project_format_version"], 1);
-    assert_eq!(init["store_schema_version"], 1);
+    assert_eq!(init["store_schema_version"], 2);
     assert!(root.join(".braidwork/project.json").is_file());
     assert!(root.join(".braidwork/braidwork.db").is_file());
     let status = json(root, &["--json", "status"]);

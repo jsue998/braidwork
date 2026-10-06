@@ -9,7 +9,10 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::{
     artifact::{Artifact, ArtifactKind},
     capsule::{ContextBudget, ContextInput, ExpectedOutput, TaskCapsule},
-    id::{ArtifactId, CapsuleId, InvalidId, ModelId, ReceiptId, ResourceId, TaskId},
+    id::{
+        AgentSpecId, ArtifactId, AssignmentId, CapsuleId, DelegationId, InvalidId, ModelId,
+        ReceiptId, ResourceId, SessionId, TaskId,
+    },
     receipt::{ExecutionOutcome, MonetaryCost, Receipt, Usage, Verification},
     resource::{AccessMode, Resource, ResourceStatus, Scarcity},
     task::{Task, TaskError, TaskStatus},
@@ -42,6 +45,8 @@ fn capsule() -> TaskCapsule {
         id: CapsuleId::new("capsule-42-v1").unwrap(),
         task_id: task().id().clone(),
         role: "implementer".into(),
+        mission: "Produce reliable work".into(),
+        instructions: vec!["Explain decisions".into()],
         objective: "Reject empty input without panicking".into(),
         inputs: vec![
             ContextInput::Inline {
@@ -178,6 +183,14 @@ where
 }
 
 fn assert_all_ids_reject(value: &str) {
+    assert_eq!(AgentSpecId::new(value), Err(InvalidId));
+    assert_id_conversions_reject::<AgentSpecId>(value);
+    assert_eq!(SessionId::new(value), Err(InvalidId));
+    assert_id_conversions_reject::<SessionId>(value);
+    assert_eq!(AssignmentId::new(value), Err(InvalidId));
+    assert_id_conversions_reject::<AssignmentId>(value);
+    assert_eq!(DelegationId::new(value), Err(InvalidId));
+    assert_id_conversions_reject::<DelegationId>(value);
     assert_eq!(ResourceId::new(value), Err(InvalidId));
     assert_eq!(ModelId::new(value), Err(InvalidId));
     assert_eq!(TaskId::new(value), Err(InvalidId));
@@ -221,6 +234,14 @@ fn every_id_rejects_trailing_whitespace() {
 #[test]
 fn every_id_accepts_and_preserves_internal_whitespace() {
     for valid in ["task 42", "task\t42", "task\n42", "task\u{2003}42"] {
+        assert_eq!(AgentSpecId::new(valid).unwrap().as_str(), valid);
+        assert_json_round_trip(&AgentSpecId::new(valid).unwrap());
+        assert_eq!(SessionId::new(valid).unwrap().as_str(), valid);
+        assert_json_round_trip(&SessionId::new(valid).unwrap());
+        assert_eq!(AssignmentId::new(valid).unwrap().as_str(), valid);
+        assert_json_round_trip(&AssignmentId::new(valid).unwrap());
+        assert_eq!(DelegationId::new(valid).unwrap().as_str(), valid);
+        assert_json_round_trip(&DelegationId::new(valid).unwrap());
         assert_eq!(ResourceId::new(valid).unwrap().as_str(), valid);
         assert_eq!(ModelId::new(valid).unwrap().as_str(), valid);
         assert_eq!(TaskId::new(valid).unwrap().as_str(), valid);
@@ -249,6 +270,10 @@ fn deserialization_cannot_bypass_id_validation() {
         "task-42\u{2003}",
     ] {
         let json = serde_json::to_string(invalid).unwrap();
+        assert!(serde_json::from_str::<AgentSpecId>(&json).is_err());
+        assert!(serde_json::from_str::<SessionId>(&json).is_err());
+        assert!(serde_json::from_str::<AssignmentId>(&json).is_err());
+        assert!(serde_json::from_str::<DelegationId>(&json).is_err());
         assert!(serde_json::from_str::<ResourceId>(&json).is_err());
         assert!(serde_json::from_str::<ModelId>(&json).is_err());
         assert!(serde_json::from_str::<TaskId>(&json).is_err());
@@ -391,6 +416,14 @@ fn capsule_contains_selected_context_requirements_and_a_portable_limit() {
     );
     assert_eq!(capsule.expected_outputs[0].kind, ArtifactKind::Patch);
     assert_eq!(capsule.context_budget.max_estimated_tokens, 4_096);
+    let mut legacy = serde_json::to_value(&capsule).unwrap();
+    legacy.as_object_mut().unwrap().remove("mission");
+    legacy.as_object_mut().unwrap().remove("instructions");
+    let restored: TaskCapsule = serde_json::from_value(legacy).unwrap();
+    assert!(restored.mission.is_empty());
+    assert!(restored.instructions.is_empty());
+    assert_eq!(restored.inputs, capsule.inputs);
+    assert_eq!(restored.objective, capsule.objective);
 }
 
 #[test]

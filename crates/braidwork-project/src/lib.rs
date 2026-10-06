@@ -12,6 +12,14 @@ use std::{
 };
 use thiserror::Error;
 
+mod content;
+mod manual;
+pub use content::{ARTIFACT_DIRECTORY, ArtifactContentError};
+pub use manual::{
+    CapsulePreparation, DEFAULT_CONTEXT_TOKENS, Dispatch, IngestOptions, IngestResult,
+    render_capsule,
+};
+
 /// Directory containing canonical project state.
 pub const STATE_DIRECTORY: &str = ".braidwork";
 /// Explicit project marker and human metadata.
@@ -50,6 +58,27 @@ struct Marker {
 /// Typed lifecycle failures; existing state is never destroyed or repaired.
 #[derive(Debug, Error)]
 pub enum ProjectError {
+    /// A proposed delegation refers directly to itself.
+    #[error(transparent)]
+    SelfDelegation(#[from] braidwork_core::delegation::SelfDelegation),
+    /// Local artifact content failure, retaining reference and filesystem diagnostics.
+    #[error(transparent)]
+    Content(#[from] ArtifactContentError),
+    /// An internally generated identity did not satisfy domain construction.
+    #[error(transparent)]
+    Identifier(#[from] braidwork_core::id::InvalidId),
+    /// A zero budget cannot carry explicitly selected context.
+    #[error("zero context budget permits no selected context")]
+    ContextForbidden,
+    /// Database rollback succeeded but removal of the newly written content failed.
+    #[error("ingest failed: {store}; orphan content cleanup also failed: {cleanup}")]
+    IngestCleanup {
+        /// Original rolled-back persistence failure.
+        #[source]
+        store: StoreError,
+        /// Failure removing only the new, unreferenced content file.
+        cleanup: ArtifactContentError,
+    },
     /// No marker directory was found during discovery.
     #[error("no Braidwork project found from {0}; run braidwork init first")]
     NotFound(PathBuf),
@@ -321,3 +350,6 @@ fn canonical_root(path: &Path) -> Result<PathBuf, ProjectError> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod manual_tests;

@@ -1,5 +1,6 @@
 use crate::CliError;
 use braidwork_core::{
+    assignment::Assignment,
     resource::Resource,
     task::{Task, TaskStatus},
 };
@@ -163,10 +164,31 @@ pub fn tasks(values: &[Task], json: bool) -> Result<String, CliError> {
         Ok(text)
     })
 }
-fn label(value: impl Serialize) -> Result<String, CliError> {
+pub(crate) fn label(value: impl Serialize) -> Result<String, CliError> {
     Ok(serde_json::from_value(serde_json::to_value(value)?)?)
 }
-fn emit<T: Serialize + ?Sized>(
+
+pub(crate) fn assignments(values: &[Assignment], json: bool) -> Result<String, CliError> {
+    emit(json, values, || {
+        let mut text = format!(
+            "{:<38} {:<24} {:<24} {:<24} STATUS",
+            "ID", "TASK", "SESSION", "AGENT@REVISION"
+        );
+        for value in values {
+            write!(
+                text,
+                "\n{:<38} {:<24} {:<24} {:<24} {}",
+                value.id.as_str(),
+                value.task_id.as_str(),
+                value.session_id.as_str(),
+                format!("{}@{}", value.agent_spec_id, value.agent_spec_revision),
+                label(value.status)?
+            )?;
+        }
+        Ok(text)
+    })
+}
+pub(crate) fn emit<T: Serialize + ?Sized>(
     json: bool,
     value: &T,
     human: impl FnOnce() -> Result<String, CliError>,
@@ -176,4 +198,23 @@ fn emit<T: Serialize + ?Sized>(
     } else {
         human()
     }
+}
+
+// New entity displays retain every field without a parallel public domain DTO.
+pub(crate) fn details<T: Serialize>(value: &T, json: bool) -> Result<String, CliError> {
+    emit(json, value, || {
+        let value = serde_json::to_value(value)?;
+        let mut lines = Vec::new();
+        if let serde_json::Value::Object(fields) = value {
+            for (name, value) in fields {
+                let text = match value {
+                    serde_json::Value::String(text) => text,
+                    serde_json::Value::Null => "(unknown/none)".into(),
+                    other => serde_json::to_string_pretty(&other)?,
+                };
+                lines.push(format!("{name}: {text}"));
+            }
+        }
+        Ok(lines.join("\n"))
+    })
 }

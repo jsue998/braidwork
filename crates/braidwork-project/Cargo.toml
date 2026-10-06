@@ -5,13 +5,15 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+braidwork-core = { path = "../braidwork-core" }
+uuid.workspace = true
 braidwork-store = { path = "../braidwork-store" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-braidwork-core = { path = "../braidwork-core" }
+rusqlite.workspace = true
 tempfile.workspace = true
 
 [lints]

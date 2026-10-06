@@ -35,7 +35,8 @@ TaskCapsule             Resource
   manual progress. Completed means the result was accepted; failed or rejected
   attempts are recorded in receipts, leaving the task open for another attempt.
   Status updates record the caller's decision and do not enforce transitions.
-- **TaskCapsule** references one task and describes the worker's role, objective,
+- **TaskCapsule** references one task and describes the worker's role, mission,
+  instructions, objective,
   selected context, constraints, acceptance criteria, and expected artifact
   kinds/descriptions. Inline text and opaque external references represent
   already-selected context. `ContextBudget.max_estimated_tokens` bounds that
@@ -69,10 +70,20 @@ TaskCapsule             Resource
   does not itself execute checks or certify their truth. Manual review can use
   an explanation without evidence artifacts.
 
+AgentSpec, Session, Assignment, and Delegation extend this domain without changing
+Task/Resource/Receipt responsibilities. Agent definitions have exact positive
+integer revisions; assignments capture those revisions historically. Capsules
+snapshot mission and instructions as portable text, with empty defaults for
+legacy serialized capsules. Assignment/capsule association lives in store, not
+inside the portable capsule. See [Execution model](EXECUTION_MODEL.md) for these
+entities, their states, and the three separate graphs.
+
 ## Invariants and representation
 
-`ResourceId`, `ModelId`, `TaskId`, `CapsuleId`, `ArtifactId`, and `ReceiptId` are distinct,
-immutable string newtypes. Consumers supply IDs; no IDs are generated. Empty,
+`ResourceId`, `ModelId`, `TaskId`, `CapsuleId`, `ArtifactId`, `ReceiptId`,
+`AgentSpecId`, `SessionId`, `AssignmentId`, and `DelegationId` are distinct,
+immutable string newtypes. Consumers supply IDs; core generates none. Project
+uses UUID v4 for execution/result identities it creates. Empty,
 whitespace-only IDs and IDs with leading or trailing whitespace fail with
 `InvalidId`. Valid strings are preserved exactly, without silent normalization;
 internal whitespace remains permitted. IDs support display, comparison, ordering,
@@ -102,11 +113,12 @@ state makes their references auditable.
 
 ## Deliberately deferred
 
-Persistence, hashing, project initialization, graph cycle detection, lifecycle
-transition policies, scheduling, execution, dispatch, response ingestion,
-verification runners, prompt rendering, context retrieval/budget enforcement,
-token counting, quotas, provider integrations, and CLI changes are outside this
-implementation. The model introduces no interfaces or infrastructure for them.
+Persistence belongs to store; project lifecycle, artifact bytes, portable text
+rendering, and manual ingestion belong to project; presentation belongs to CLI.
+None is implemented inside core. Hashing, global graph cycle detection, scheduling,
+dynamic planning, automated execution, verification runners, context retrieval/
+token-budget measurement, token counting, quotas, and provider integrations remain
+deferred throughout the workspace. Core adds no speculative interfaces for them.
 
 `serde` supplies boundary serialization in core; `serde_json` is a test-only
 dependency. Small domain errors implement the standard error traits directly,

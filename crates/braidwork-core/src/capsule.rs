@@ -67,6 +67,12 @@ pub struct TaskCapsule {
     pub task_id: TaskId,
     /// Worker responsibility, such as implementer or reviewer.
     pub role: String,
+    /// Agent mission, captured as portable domain text. Empty for legacy capsules.
+    #[serde(default)]
+    pub mission: String,
+    /// Agent instructions captured at preparation time, independent of chat syntax.
+    #[serde(default)]
+    pub instructions: Vec<String>,
     /// Result the worker should achieve for this execution.
     pub objective: String,
     /// Selected inline context or references to external context.

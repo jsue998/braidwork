@@ -3,7 +3,8 @@
 **Coordinate the AI you already have.**
 
 Braidwork is an open-source, local-first and free-first orchestration runtime
-for coordinating multiple AI resources around a shared software project.
+for coordinating multiple AI resources around a shared project: research,
+writing, planning, software, or other work divided among specialists.
 
 Its purpose is simple:
 
@@ -33,10 +34,11 @@ Braidwork is built around two fundamental objects:
 
 ## Current
 
-M0 — Foundation now includes a working local CLI, typed domain entities, and
-canonical SQLite persistence. You can initialize a project, register resources
-and pending tasks, and inspect their persisted state. Commands also work from
-subdirectories through upward project discovery.
+M0 — Foundation includes a local CLI, canonical SQLite persistence, versioned
+agent definitions, independent sessions, assignments, and explicit delegations.
+Manual Bridge prepares portable instructions and ingests external results as
+filesystem artifacts and auditable receipts. Commands also work from project
+subdirectories through upward discovery.
 
 ## Quick Start
 
@@ -49,45 +51,61 @@ cargo install --path crates/braidwork-cli
 Then, in an existing project directory:
 
 ```bash
-braidwork init --name compiler-lab
+braidwork init --name travel-research
 
 braidwork resource add chatgpt-plus-main \
   --name "ChatGPT Plus" --provider OpenAI \
   --access-mode manual --scarcity scarce
 
-braidwork task add requirements \
-  --title "Understand requirements" --objective "Produce a precise plan"
+braidwork agent add researcher \
+  --name "Researcher" --role "Research specialist" \
+  --mission "Prepare a rigorous travel plan" \
+  --instruction "Distinguish facts from assumptions"
 
-braidwork task add implementation \
-  --title "Implement feature" --objective "Implement the accepted design" \
-  --depends-on requirements
+braidwork session add research-chat \
+  --label "Travel research chat" --resource chatgpt-plus-main \
+  --agent researcher --external-ref "My research conversation"
 
+braidwork task add itinerary \
+  --title "Research itinerary" --objective "Prepare a structured travel plan"
+
+braidwork assignment create itinerary --session research-chat
+# Use the assignment ID printed above:
+braidwork capsule prepare <ASSIGNMENT_ID> \
+  --constraint "Do not invent prices" --accept "Explain budget assumptions"
+braidwork capsule render <CAPSULE_ID>
+# Manually copy instructions to the external AI, then save its result as result.md.
+braidwork ingest <ASSIGNMENT_ID> --file result.md
+braidwork assignment show <ASSIGNMENT_ID>
 braidwork status
-braidwork resource list
-braidwork task list
-braidwork task show implementation
 ```
 
-State lives in `.braidwork/project.json` and `.braidwork/braidwork.db` and survives
-process restarts. `init [PATH]` initializes an existing directory; omitting
+State lives in `.braidwork/project.json` and `.braidwork/braidwork.db`; returned
+content lives in the lazily created `.braidwork/artifacts/`. Everything survives
+process restarts. Many sessions can share one resource. Agent revisions coexist
+without replacing historical definitions. Ingestion records unverified work,
+not automatic acceptance or task completion.
+
+`init [PATH]` initializes an existing directory; omitting
 `--name` uses its directory name. `--project <ROOT>` opens an exact project root
 for other commands, while `--json` emits script-friendly JSON results. For example:
 
 ```bash
-braidwork --json --project /path/to/compiler-lab status
+braidwork --json --project /path/to/travel-research status
 ```
 
 `--project` cannot be combined with `init`; use `init <PATH>` instead.
-Use `braidwork --help`, `braidwork resource --help`, or `braidwork task --help`
-for the complete interface. Resource defaults are manual access, normal scarcity,
+Use `braidwork --help` and each command group's `--help` for the complete interface.
+Resource defaults are manual access, normal scarcity,
 and available status; resource name and provider are required.
 
 ## Roadmap
 
-Manual capsule dispatch, result ingestion, verification, scheduling, and official
-provider integrations remain future work. This version records project state;
-it does not execute models or contact providers. See [ROADMAP](docs/ROADMAP.md)
-and [Project runtime architecture](docs/architecture/PROJECT_RUNTIME.md).
+Dynamic planning, scheduling, Context Compiler, verification runners, GUI, and
+official provider integrations remain future work. External model execution is
+manual; this version does not contact providers or automate consumer web chats.
+See [ROADMAP](docs/ROADMAP.md), [Execution model](docs/architecture/EXECUTION_MODEL.md),
+and [Manual Bridge](docs/architecture/MANUAL_BRIDGE.md).
 
 ## License
 

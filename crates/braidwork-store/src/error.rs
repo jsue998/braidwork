@@ -1,7 +1,14 @@
-use std::{fmt, num::ParseIntError};
+use std::{
+    fmt,
+    num::{NonZeroU32, ParseIntError},
+};
 
 use braidwork_core::{
-    id::{ArtifactId, CapsuleId, InvalidId, ReceiptId, ResourceId, TaskId},
+    delegation::SelfDelegation,
+    id::{
+        AgentSpecId, ArtifactId, AssignmentId, CapsuleId, DelegationId, InvalidId, ReceiptId,
+        ResourceId, SessionId, TaskId,
+    },
     task::TaskError,
 };
 use thiserror::Error;
@@ -9,6 +16,14 @@ use thiserror::Error;
 /// A typed identity identifying the entity involved in a store error.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EntityId {
+    /// A precise historical agent revision.
+    AgentSpec(AgentSpecId, NonZeroU32),
+    /// A persistent execution instance.
+    Session(SessionId),
+    /// A historical work allocation.
+    Assignment(AssignmentId),
+    /// An explicit delegation edge.
+    Delegation(DelegationId),
     /// An AI resource record.
     Resource(ResourceId),
     /// A task record.
@@ -24,6 +39,10 @@ pub enum EntityId {
 impl fmt::Display for EntityId {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::AgentSpec(id, revision) => write!(formatter, "agent {id}@{revision}"),
+            Self::Session(id) => write!(formatter, "session {id}"),
+            Self::Assignment(id) => write!(formatter, "assignment {id}"),
+            Self::Delegation(id) => write!(formatter, "delegation {id}"),
             Self::Resource(id) => write!(formatter, "resource {id}"),
             Self::Task(id) => write!(formatter, "task {id}"),
             Self::Capsule(id) => write!(formatter, "capsule {id}"),
@@ -36,6 +55,12 @@ impl fmt::Display for EntityId {
 /// Persisted data could not be reconstructed as a valid domain value.
 #[derive(Debug, Error)]
 pub enum ReconstructionError {
+    /// Persisted revision zero cannot identify a historical agent definition.
+    #[error("invalid persisted agent revision {0}; revisions start at one")]
+    Revision(u32),
+    /// A persisted edge delegates directly to itself.
+    #[error(transparent)]
+    Delegation(#[from] SelfDelegation),
     /// A persisted identifier violates domain validation.
     #[error("invalid persisted identifier: {0}")]
     InvalidId(#[from] InvalidId),
@@ -56,6 +81,31 @@ pub enum ReconstructionError {
 /// Explicit failure categories for the store's library API.
 #[derive(Debug, Error)]
 pub enum StoreError {
+    /// A required referenced entity is absent; the relationship is named explicitly.
+    #[error("missing {relation}: {entity}")]
+    MissingReference {
+        /// Relationship requiring this entity.
+        relation: &'static str,
+        /// Precise missing identity.
+        entity: EntityId,
+    },
+    /// The assignment did not capture the session's configured historical revision.
+    #[error("assignment {0} must use the session's exact agent revision")]
+    AgentMismatch(AssignmentId),
+    /// A workflow operation is invalid for the persisted allocation.
+    #[error("assignment {assignment}: {reason}")]
+    Workflow {
+        /// Allocation involved.
+        assignment: AssignmentId,
+        /// Specific workflow rule violated.
+        reason: &'static str,
+    },
+    /// The parent agent's stored policy disallows this edge or child count.
+    #[error("delegation from assignment {0} is denied by its historical agent policy")]
+    DelegationDenied(AssignmentId),
+    /// Task or execution references disagree across a composed operation.
+    #[error("inconsistent execution provenance: {0}")]
+    Provenance(&'static str),
     /// `SQLite` opening, querying, or transaction failure outside integrity checks.
     #[error("database error: {0}")]
     Database(#[from] rusqlite::Error),
@@ -87,7 +137,7 @@ pub enum StoreError {
         source: rusqlite::Error,
     },
     /// This implementation cannot open the persisted schema version.
-    #[error("unsupported schema version {found}; expected {supported} or an empty database")]
+    #[error("unsupported schema version {found}; supported migrations end at {supported}")]
     UnsupportedSchema {
         /// Persisted version found in the database.
         found: u32,

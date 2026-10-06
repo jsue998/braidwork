@@ -1,3 +1,7 @@
+use crate::execution_args::{
+    AgentCommand, AssignmentCommand, CapsuleCommand, DelegationCommand, DispatchArgs, IngestArgs,
+    SessionCommand,
+};
 use braidwork_core::{
     id::{ResourceId, TaskId},
     resource::{AccessMode, ResourceStatus, Scarcity},
@@ -25,6 +29,35 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
+    /// Register and inspect immutable agent definitions
+    Agent {
+        #[command(subcommand)]
+        command: AgentCommand,
+    },
+    /// Register and inspect persistent execution conversations
+    Session {
+        #[command(subcommand)]
+        command: SessionCommand,
+    },
+    /// Allocate tasks and inspect historical allocations
+    Assignment {
+        #[command(subcommand)]
+        command: AssignmentCommand,
+    },
+    /// Record and inspect explicit delegation acts
+    Delegation {
+        #[command(subcommand)]
+        command: DelegationCommand,
+    },
+    /// Prepare and render portable task descriptions
+    Capsule {
+        #[command(subcommand)]
+        command: CapsuleCommand,
+    },
+    /// Display a manual handoff; no browser automation
+    Dispatch(DispatchArgs),
+    /// Ingest an exact manually returned result, unverified by default
+    Ingest(IngestArgs),
     /// Initialize an existing directory without overwriting state
     Init {
         /// Directory to initialize (defaults to the current directory)

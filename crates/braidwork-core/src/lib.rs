@@ -30,12 +30,43 @@
 //! select_resource(ModelId::new("model-1").unwrap());
 //! ```
 
+//! ```compile_fail
+//! use braidwork_core::id::{AgentSpecId, TaskId};
+//! fn use_identity(_id: AgentSpecId) {}
+//! use_identity(TaskId::new("task-1").unwrap());
+//! ```
+//!
+//! ```compile_fail
+//! use braidwork_core::id::{SessionId, TaskId};
+//! fn use_identity(_id: SessionId) {}
+//! use_identity(TaskId::new("task-1").unwrap());
+//! ```
+//!
+//! ```compile_fail
+//! use braidwork_core::id::{AssignmentId, TaskId};
+//! fn use_identity(_id: AssignmentId) {}
+//! use_identity(TaskId::new("task-1").unwrap());
+//! ```
+//!
+//! ```compile_fail
+//! use braidwork_core::id::{DelegationId, TaskId};
+//! fn use_identity(_id: DelegationId) {}
+//! use_identity(TaskId::new("task-1").unwrap());
+//! ```
+//!
+pub mod agent;
 pub mod artifact;
+pub mod assignment;
 pub mod capsule;
+pub mod delegation;
 pub mod id;
 pub mod receipt;
 pub mod resource;
+pub mod session;
 pub mod task;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod execution_tests;
