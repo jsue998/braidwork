@@ -316,6 +316,17 @@ impl Project {
     pub fn schema_version(&self) -> Result<u32, ProjectError> {
         Ok(self.store.schema_version()?)
     }
+    /// Records an explicit user declaration of task progress; no verification is implied.
+    ///
+    /// # Errors
+    /// Returns typed task-not-found, reconstruction, or persistence errors.
+    pub fn set_task_status(
+        &mut self,
+        id: &braidwork_core::id::TaskId,
+        status: braidwork_core::task::TaskStatus,
+    ) -> Result<braidwork_core::task::Task, ProjectError> {
+        Ok(self.store.set_task_status(id, status)?)
+    }
     /// Access to domain reads, without exposing a database connection.
     #[must_use]
     pub fn store(&self) -> &SqliteStore {

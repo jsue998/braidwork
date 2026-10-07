@@ -2,7 +2,7 @@ use crate::Project;
 use braidwork_core::id::ArtifactId;
 use std::{
     fs,
-    io::Write,
+    io::{Read, Write},
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -94,6 +94,32 @@ impl Project {
                 io_error(&path, source)
             }
         })
+    }
+    /// Reads a bounded preview without modifying or truncating canonical content.
+    ///
+    /// Returns `None` when the actual file exceeds `limit` bytes, independently of
+    /// metadata. At most `limit + 1` bytes are read; an empty file is `Some(vec![])`.
+    ///
+    /// # Errors
+    /// Returns invalid-reference, missing-content, or path-aware I/O errors.
+    pub fn read_artifact_content_up_to(
+        &self,
+        reference: &str,
+        limit: u64,
+    ) -> Result<Option<Vec<u8>>, ArtifactContentError> {
+        let path = self.content_path(reference)?;
+        let file = fs::File::open(&path).map_err(|source| {
+            if source.kind() == std::io::ErrorKind::NotFound {
+                ArtifactContentError::Missing(reference.to_owned())
+            } else {
+                io_error(&path, source)
+            }
+        })?;
+        let mut bytes = Vec::new();
+        file.take(limit.saturating_add(1))
+            .read_to_end(&mut bytes)
+            .map_err(|source| io_error(&path, source))?;
+        Ok((bytes.len() as u64 <= limit).then_some(bytes))
     }
     pub(crate) fn remove_new_content(&self, reference: &str) -> Result<(), ArtifactContentError> {
         let path = self.content_path(reference)?;

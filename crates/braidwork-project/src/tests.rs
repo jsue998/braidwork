@@ -345,3 +345,61 @@ fn a_database_alone_is_not_a_project_marker() {
     ));
     assert!(!state.join(PROJECT_FILE).exists());
 }
+
+#[test]
+fn declared_status_and_bounded_content_survive_reopen_without_changing_bytes() {
+    use braidwork_core::{id::ArtifactId, task::TaskStatus};
+    let directory = tempfile::tempdir().unwrap();
+    let mut project = Project::init(directory.path(), Some("Japan Trip")).unwrap();
+    let task = Task::new(
+        TaskId::new("travel").unwrap(),
+        "Transport",
+        "Compare travel options",
+        None,
+        [],
+    )
+    .unwrap();
+    project.store_mut().insert_task(&task).unwrap();
+    project
+        .set_task_status(task.id(), TaskStatus::Completed)
+        .unwrap();
+    let reference = project
+        .write_artifact_content(&ArtifactId::new("preview").unwrap(), b"exact content")
+        .unwrap();
+    assert_eq!(
+        project.read_artifact_content_up_to(&reference, 12).unwrap(),
+        None
+    );
+    assert_eq!(
+        project
+            .read_artifact_content_up_to(&reference, 13)
+            .unwrap()
+            .unwrap(),
+        b"exact content"
+    );
+    assert_eq!(
+        project.read_artifact_content_up_to(&reference, 0).unwrap(),
+        None
+    );
+    let empty = project
+        .write_artifact_content(&ArtifactId::new("empty-preview").unwrap(), b"")
+        .unwrap();
+    assert_eq!(
+        project.read_artifact_content_up_to(&empty, 0).unwrap(),
+        Some(vec![])
+    );
+    assert!(matches!(
+        project.read_artifact_content_up_to("artifact:aa.bin", 20),
+        Err(crate::ArtifactContentError::Missing(_))
+    ));
+    drop(project);
+    let reopened = Project::open(directory.path()).unwrap();
+    assert_eq!(
+        reopened.store().get_task(task.id()).unwrap().status(),
+        TaskStatus::Completed
+    );
+    assert_eq!(
+        reopened.read_artifact_content(&reference).unwrap(),
+        b"exact content"
+    );
+}

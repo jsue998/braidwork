@@ -124,6 +124,13 @@ Manual Bridge adds `prepare_assignment_capsule`, `get_assignment_capsule`,
 `get_assignment_receipt`. These are specific workflow operations, including
 assignment-status changes, rather than a general update interface.
 
+`set_task_status(&TaskId, TaskStatus)` is the only additional task mutation.
+It acquires an IMMEDIATE transaction, reconstructs the existing task through the
+same validated reader, changes only the status column, and returns the task.
+Missing tasks are typed NotFound errors; invalid persisted relationships fail
+before writing. It records the caller's declaration without transition rules,
+receipt verification changes, or a schema migration.
+
 Parent and dependency tasks must exist before task insertion. Capsules and
 artifacts require existing tasks. Receipts require an existing task, resource,
 and capsule; their produced artifacts must exist. Composite foreign keys enforce

@@ -134,5 +134,6 @@ See [Canonical persistence](PERSISTENCE.md) for exact schema and APIs and
 OrganizationPlan, dynamic topology, autonomous planning/spawning/delegation,
 scheduling, retries, budget propagation, graph cycle detection, session editing,
 verification/completion policies, provider integrations, browser automation,
-Context Compiler, token counting, and GUI remain future work. The organization
+Context Compiler, token counting remain future work. The [Desktop adapter](DESKTOP.md) exposes
+these primitives visually without changing their semantics. The organization
 is data ready for future consumers, not an implemented autonomous planner.

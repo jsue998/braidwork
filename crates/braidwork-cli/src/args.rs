@@ -5,6 +5,7 @@ use crate::execution_args::{
 use braidwork_core::{
     id::{ResourceId, TaskId},
     resource::{AccessMode, ResourceStatus, Scarcity},
+    task::TaskStatus,
 };
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
@@ -114,6 +115,14 @@ pub struct ResourceArgs {
 }
 #[derive(Subcommand)]
 pub enum TaskCommand {
+    /// Record a user-declared status; does not verify results or enforce transitions
+    Status {
+        /// Exact task identifier
+        id: TaskId,
+        /// Declared progress
+        #[arg(value_enum)]
+        status: TaskStatusArg,
+    },
     /// Insert a pending task; referenced parent and dependencies must exist
     Add(TaskArgs),
     /// List all tasks in identifier order
@@ -188,6 +197,22 @@ impl From<Availability> for ResourceStatus {
             Availability::Available => Self::Available,
             Availability::Unavailable => Self::Unavailable,
             Availability::Exhausted => Self::Exhausted,
+        }
+    }
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum TaskStatusArg {
+    Pending,
+    InProgress,
+    Completed,
+}
+impl From<TaskStatusArg> for TaskStatus {
+    fn from(value: TaskStatusArg) -> Self {
+        match value {
+            TaskStatusArg::Pending => Self::Pending,
+            TaskStatusArg::InProgress => Self::InProgress,
+            TaskStatusArg::Completed => Self::Completed,
         }
     }
 }

@@ -1,9 +1,13 @@
 # Architecture
 
-Implemented in M0 — Foundation:
+Implemented in M1 — Manual Braidwork / Desktop foundation:
 
 ```text
-braidwork-cli          user commands, help, human/JSON output
+React UI              locally bundled Desktop interface
+     │ Tauri IPC
+     ▼
+braidwork-desktop      serialized Rust adapter, project root state
+     │                 braidwork-cli also calls project directly
      │
      ▼
 braidwork-project      lifecycle, discovery, artifact content, Manual Bridge
@@ -32,6 +36,7 @@ surfaces, not project storage.
 - [Project runtime and CLI](PROJECT_RUNTIME.md)
 - [Execution model](EXECUTION_MODEL.md)
 - [Manual Bridge](MANUAL_BRIDGE.md)
+- [Desktop](DESKTOP.md)
 
 Manual execution supports any divisible work, including research, writing,
 planning, and software. Agent/session structure, task dependencies, and delegation
@@ -39,5 +44,5 @@ are separate data relationships. Many sessions may share one resource; different
 sessions may also use heterogeneous resources without provider-specific logic.
 
 The Context Compiler, verification engine, dynamic planner, scheduler, provider
-connectors, and GUI remain future components. No model calls or automatic web
+connectors, and more advanced Desktop capabilities remain future components. No model calls or automatic web
 chat integration are implemented.

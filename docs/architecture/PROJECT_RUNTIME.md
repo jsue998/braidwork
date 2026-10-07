@@ -93,7 +93,9 @@ repository trait, application crate, or public database connection.
 
 Execution APIs add `create_assignment`, `add_delegation`, `prepare_capsule`,
 `render_capsule`, `dispatch`, and `ingest`, with explicit preparation/ingestion
-options. `write_artifact_content` and `read_artifact_content` own portable content
+options. `set_task_status` records an explicit user declaration without enforcing transitions
+or changing receipts. `read_artifact_content_up_to` provides a bounded optional
+preview without modifying content. `write_artifact_content` and `read_artifact_content` own portable content
 references; they do not make core aware of paths. UUID v4 identity generation and
 filesystem/SQLite composition live here. See [Manual Bridge](MANUAL_BRIDGE.md)
 for exact content layout and its atomicity boundary.
@@ -113,7 +115,8 @@ braidwork [--project ROOT] [--json]
  │    ├── add ID --title TITLE --objective OBJECTIVE
  │    │         [--parent TASK_ID] [--depends-on TASK_ID]...
  │    ├── list
- │    └── show ID
+ │    ├── show ID
+ │    └── status ID pending|in-progress|completed
  ├── agent add|list|show
  ├── session add|list|show
  ├── assignment create|list|show
@@ -170,7 +173,7 @@ converting them to strings or using `anyhow`.
 
 Execution adds typed content failures, identity/delegation construction errors,
 zero-budget selected-context rejection, and ingestion cleanup failure preserving
-both the database and filesystem errors. Context/input-file I/O is a CLI boundary
+both the database and filesystem errors. Context/input-file I/O is an interface (CLI/Desktop) boundary
 concern; project retains reusable byte/content operations.
 
 The CLI reports errors on stderr, exits nonzero, and prints no default backtrace.
@@ -182,7 +185,7 @@ human and JSON results go to stdout.
 
 Project, store, and real-binary integration tests use temporary directories.
 There are no interactive prompts, provider checks, or network operations.
-General updates/deletes, task transitions, standalone artifact/receipt command
+General updates/deletes, formal task transition enforcement, standalone artifact/receipt command
 groups, context compilation, verification runners, Git integration, scheduling,
-dynamic planning, provider automation, plugins, GUI, servers, and async infrastructure
+dynamic planning, provider automation, plugins, servers, and async project infrastructure
 remain deliberately deferred. No placeholder commands are introduced.

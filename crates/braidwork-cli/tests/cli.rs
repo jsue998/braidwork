@@ -454,3 +454,45 @@ fn help_version_and_required_arguments_work_without_a_project() {
     failure(root, &["resource", "add", "id"], "required arguments");
     failure(root, &["task", "add", "id"], "required arguments");
 }
+
+#[test]
+fn explicit_task_status_changes_round_trip_between_real_processes() {
+    let directory = initialized();
+    success(
+        directory.path(),
+        &[
+            "task",
+            "add",
+            "travel",
+            "--title",
+            "Transport",
+            "--objective",
+            "Compare travel options",
+        ],
+    );
+    for (argument, value) in [
+        ("completed", "completed"),
+        ("pending", "pending"),
+        ("in-progress", "in_progress"),
+    ] {
+        let updated = json(
+            directory.path(),
+            &["--json", "task", "status", "travel", argument],
+        );
+        assert_eq!(updated["status"], value);
+        assert_eq!(
+            json(directory.path(), &["--json", "task", "show", "travel"])["status"],
+            value
+        );
+    }
+    failure(
+        directory.path(),
+        &["task", "status", "absent", "completed"],
+        "not found",
+    );
+    failure(
+        directory.path(),
+        &["task", "status", "travel", "verified"],
+        "invalid value",
+    );
+}

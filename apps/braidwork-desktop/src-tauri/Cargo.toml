@@ -1,0 +1,39 @@
+[package]
+name = "braidwork-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "braidwork_desktop"
+
+[[bin]]
+name = "braidwork-desktop"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[features]
+default = []
+desktop = ["dep:tauri", "dep:tauri-build", "dep:tauri-plugin-dialog", "dep:tauri-plugin-clipboard-manager", "dep:tauri-plugin-opener"]
+
+[dependencies]
+braidwork-core = { path = "../../../crates/braidwork-core" }
+braidwork-store = { path = "../../../crates/braidwork-store" }
+braidwork-project = { path = "../../../crates/braidwork-project" }
+serde.workspace = true
+uuid.workspace = true
+url = "2"
+tauri = { version = "2", optional = true , features = [] }
+tauri-plugin-dialog = { version = "2", optional = true }
+tauri-plugin-clipboard-manager = { version = "2", optional = true }
+tauri-plugin-opener = { version = "2", optional = true }
+
+[build-dependencies]
+tauri-build = { version = "2", optional = true , features = [] }
+
+[dev-dependencies]
+serde_json.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

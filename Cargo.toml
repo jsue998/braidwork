@@ -5,6 +5,7 @@ members = [
     "crates/braidwork-store",
     "crates/braidwork-project",
     "crates/braidwork-cli",
+    "apps/braidwork-desktop/src-tauri",
 ]
 
 [workspace.package]

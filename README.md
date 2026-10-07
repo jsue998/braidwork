@@ -34,13 +34,49 @@ Braidwork is built around two fundamental objects:
 
 ## Current
 
-M0 — Foundation includes a local CLI, canonical SQLite persistence, versioned
+M1 — Manual Braidwork / Desktop foundation includes a local desktop interface,
+a CLI for scripting and debugging, canonical SQLite persistence, versioned
 agent definitions, independent sessions, assignments, and explicit delegations.
 Manual Bridge prepares portable instructions and ingests external results as
 filesystem artifacts and auditable receipts. Commands also work from project
 subdirectories through upward discovery.
 
-## Quick Start
+## Braidwork Desktop
+
+The desktop foundation is a general-purpose work interface, not a chat client.
+Open or create a real project, register resources, define agents and sessions,
+create and assign work, and prepare portable instructions. Copy them into your
+external AI, explicitly record dispatch, then paste/import the response and inspect
+its artifacts and unverified receipt. Team, Work, Resources, Results, and a
+selection inspector show canonical project data, including explicit delegations.
+Task completion is a separate user action; no progress or provider usage is invented.
+
+Desktop is an early development build, not a finished packaged release.
+Development requires Rust, Node.js 22.12+ and npm, plus Tauri's native platform
+prerequisites. On Linux, GTK 3 / WebKitGTK 4.1 development packages are required.
+See [Desktop architecture and prerequisites](docs/architecture/DESKTOP.md).
+
+```bash
+cd apps/braidwork-desktop
+npm install
+npm run tauri -- dev
+```
+
+Frontend-only `npm run dev` serves local assets for development; it does not
+provide a fake runtime. Use the Tauri command for project operations and native dialogs.
+
+```bash
+# From the repository root:
+make check          # Rust domain/runtime and headless desktop service
+make desktop-check # ESLint, Vitest, strict TypeScript and local asset build
+make desktop-build # Native debug application, no installers
+```
+
+No account, credentials, network backend, telemetry, or automatic provider access
+is needed. Consumer web chats remain manual. Windows/macOS architecture is
+configured; actual native builds must be validated on those hosts.
+
+## Braidwork CLI — Quick Start
 
 Install the binary from this checkout:
 
@@ -78,6 +114,8 @@ braidwork capsule render <CAPSULE_ID>
 braidwork ingest <ASSIGNMENT_ID> --file result.md
 braidwork assignment show <ASSIGNMENT_ID>
 braidwork status
+# Declare progress explicitly when appropriate (does not verify the receipt):
+braidwork task status itinerary completed
 ```
 
 State lives in `.braidwork/project.json` and `.braidwork/braidwork.db`; returned
@@ -101,7 +139,7 @@ and available status; resource name and provider are required.
 
 ## Roadmap
 
-Dynamic planning, scheduling, Context Compiler, verification runners, GUI, and
+Dynamic planning, scheduling, Context Compiler, verification runners, advanced Desktop, and
 official provider integrations remain future work. External model execution is
 manual; this version does not contact providers or automate consumer web chats.
 See [ROADMAP](docs/ROADMAP.md), [Execution model](docs/architecture/EXECUTION_MODEL.md),

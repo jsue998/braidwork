@@ -163,5 +163,7 @@ retry or model call occurs. JSON results stay on stdout; errors go to stderr wit
 nonzero exit status, typed relationship/workflow context, and no default backtrace.
 
 Verification runners, provider connectors, context compilation/retrieval, clipboard
-support, response parsing, multiple artifact extraction, GUI, planners, and schedulers
+support, response parsing, multiple artifact extraction, planners, and schedulers
 remain deliberately deferred.
+
+The [Desktop adapter](DESKTOP.md) now exposes this same Manual Bridge visually.

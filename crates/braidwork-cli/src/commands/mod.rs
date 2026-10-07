@@ -75,6 +75,9 @@ fn task_command(
             })?;
             output::task(&task, json)
         }
+        TaskCommand::Status { id, status } => {
+            output::task(&project.set_task_status(&id, status.into())?, json)
+        }
         TaskCommand::List => output::tasks(&project.store().list_tasks()?, json),
         TaskCommand::Show { id } => output::task(&project.store().get_task(&id)?, json),
     }

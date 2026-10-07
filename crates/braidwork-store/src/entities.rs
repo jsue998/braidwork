@@ -4,9 +4,9 @@ use braidwork_core::{
     id::{ArtifactId, CapsuleId, InvalidId, ModelId, ReceiptId, ResourceId, TaskId},
     receipt::Receipt,
     resource::Resource,
-    task::Task,
+    task::{Task, TaskStatus},
 };
-use rusqlite::{Connection, Row, params};
+use rusqlite::{Connection, Row, TransactionBehavior, params};
 
 use crate::{
     EntityId, ReconstructionError, SqliteStore, StoreError,
@@ -136,6 +136,37 @@ impl SqliteStore {
             EntityId::Task(task_id.clone()),
             |row| task_from_row(&transaction, row),
         )?;
+        transaction.commit()?;
+        Ok(task)
+    }
+
+    /// Records the user's declared task status without imposing transitions.
+    ///
+    /// Only status changes; relationships and execution/verification remain intact.
+    /// The returned task is reconstructed within the same write transaction.
+    ///
+    /// # Errors
+    /// Returns not-found, reconstruction, serialization, or database errors.
+    pub fn set_task_status(
+        &mut self,
+        task_id: &TaskId,
+        status: TaskStatus,
+    ) -> Result<Task, StoreError> {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let mut task = read(
+            &transaction,
+            "SELECT id, title, objective, parent, status FROM tasks WHERE id = ?1",
+            task_id.as_str(),
+            EntityId::Task(task_id.clone()),
+            |row| task_from_row(&transaction, row),
+        )?;
+        transaction.execute(
+            "UPDATE tasks SET status = ?1 WHERE id = ?2",
+            params![enum_text(status)?, task_id.as_str()],
+        )?;
+        task.set_status(status);
         transaction.commit()?;
         Ok(task)
     }

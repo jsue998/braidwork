@@ -961,3 +961,28 @@ fn lists_apply_the_same_reconstruction_checks_as_getters() {
 
 #[path = "execution_tests.rs"]
 mod execution;
+
+#[test]
+fn explicit_status_changes_preserve_task_relationships_and_have_typed_not_found() {
+    let mut store = SqliteStore::open_in_memory().unwrap();
+    let parent = task("parent", None, &[]);
+    store.insert_task(&parent).unwrap();
+    let child = task("child", Some("parent"), &["parent"]);
+    store.insert_task(&child).unwrap();
+    for status in [
+        TaskStatus::Completed,
+        TaskStatus::Pending,
+        TaskStatus::InProgress,
+        TaskStatus::InProgress,
+    ] {
+        let updated = store.set_task_status(child.id(), status).unwrap();
+        assert_eq!(updated.status(), status);
+        assert_eq!(updated.parent(), child.parent());
+        assert_eq!(updated.dependencies(), child.dependencies());
+        assert_eq!(store.get_task(child.id()).unwrap(), updated);
+    }
+    let id = TaskId::new("absent").unwrap();
+    assert!(
+        matches!(store.set_task_status(&id, TaskStatus::Completed), Err(StoreError::NotFound { entity: EntityId::Task(found) }) if found == id)
+    );
+}
