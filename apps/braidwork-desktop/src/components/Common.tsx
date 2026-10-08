@@ -1,8 +1,11 @@
+import { useI18n } from "../i18n/context";
 import { useId, type ReactNode } from "react";
+import { errorMessage } from "../i18n";
 import type { IpcError } from "../types/ipc";
 import { stateLabel } from "../lib/derive";
 export function Badge({ state }: { state: string }) {
-  return <span className={`badge state-${state}`}>{stateLabel(state)}</span>;
+  const { t } = useI18n();
+  return <span className={`badge state-${state}`}>{stateLabel(state, t)}</span>;
 }
 export function Empty({
   title,
@@ -28,19 +31,21 @@ export function ErrorNotice({
   error: IpcError;
   dismiss?: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div role="alert" className="error-notice">
       <div>
-        <strong>{error.message}</strong>
+        <strong>{errorMessage(error, t)}</strong>
         <details>
-          <summary>Technical details</summary>
+          <summary>{t("Technical details")}</summary>
           <pre>
             {error.code}
+            {`\n${error.message}`}
             {error.detail ? `\n${error.detail}` : ""}
           </pre>
         </details>
       </div>
-      {dismiss && <button onClick={dismiss}>Dismiss</button>}
+      {dismiss && <button onClick={dismiss}>{t("Dismiss")}</button>}
     </div>
   );
 }
@@ -63,9 +68,10 @@ export function Field({
   );
 }
 export function Technical({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   return (
     <details className="technical">
-      <summary>Technical details</summary>
+      <summary>{t("Technical details")}</summary>
       {children}
     </details>
   );
@@ -79,10 +85,11 @@ export function PageHeading({
   subtitle: string;
   action?: ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <header className="page-heading">
       <div>
-        <p className="eyebrow">PROJECT WORKSPACE</p>
+        <p className="eyebrow">{t("PROJECT WORKSPACE")}</p>
         <h1>{title}</h1>
         <p>{subtitle}</p>
       </div>

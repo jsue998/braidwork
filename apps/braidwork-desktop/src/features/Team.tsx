@@ -1,32 +1,38 @@
+import { useI18n } from "../i18n/context";
 import { Plus, ArrowUpRight } from "lucide-react";
 import { useWorkspace } from "../app/context";
 import { Badge, Empty, PageHeading } from "../components/Common";
 export function Team() {
+  const { t } = useI18n();
   const { snapshot, select, showForm } = useWorkspace();
   if (!snapshot) return null;
   return (
     <>
       <PageHeading
-        title="Team"
-        subtitle="Agents define a specialty. Sessions put that specialty to work."
+        title={t("Team")}
+        subtitle={t(
+          "Agents define a specialty. Sessions put that specialty to work.",
+        )}
         action={
           <div className="actions">
             <button onClick={() => showForm({ kind: "agent" })}>
-              <Plus size={16} /> Create agent
+              <Plus size={16} /> {t("Create agent")}{" "}
             </button>
             <button
               className="primary"
               onClick={() => showForm({ kind: "session" })}
             >
-              <Plus size={16} /> Create session
+              <Plus size={16} /> {t("Create session")}{" "}
             </button>
           </div>
         }
       />
       <section className="section">
         <div className="section-heading">
-          <h2>Sessions</h2>
-          <span>{snapshot.sessions.length} execution surfaces</span>
+          <h2>{t("Sessions")}</h2>
+          <span>
+            {snapshot.sessions.length} {t("execution surfaces")}
+          </span>
         </div>
         {snapshot.sessions.length ? (
           <div className="team-grid">
@@ -46,18 +52,18 @@ export function Team() {
                   onClick={() => select({ kind: "session", id: session.id })}
                 >
                   <div className="card-heading">
-                    <strong>{agent?.name ?? "Missing agent"}</strong>
+                    <strong>{agent?.name ?? t("Missing agent")}</strong>
                     <ArrowUpRight size={16} />
                   </div>
-                  <p>{agent?.role ?? "Unknown role"}</p>
+                  <p>{agent?.role ?? t("Unknown role")}</p>
                   <dl>
-                    <dt>Session</dt>
+                    <dt>{t("Session")}</dt>
                     <dd>{session.label}</dd>
-                    <dt>Resource</dt>
-                    <dd>{resource?.name ?? "Missing resource"}</dd>
-                    <dt>Agent revision</dt>
+                    <dt>{t("Resource")}</dt>
+                    <dd>{resource?.name ?? t("Missing resource")}</dd>
+                    <dt>{t("Agent revision")}</dt>
                     <dd>
-                      {agent?.name ?? "Missing agent"} ·{" "}
+                      {agent?.name ?? t("Missing agent")} ·{" "}
                       {session.agent_spec_revision}
                     </dd>
                   </dl>
@@ -71,22 +77,25 @@ export function Team() {
           </div>
         ) : (
           <Empty
-            title="No sessions yet."
+            title={t("No sessions yet.")}
             action={
               <button onClick={() => showForm({ kind: "session" })}>
-                Create session
+                {" "}
+                {t("Create session")}{" "}
               </button>
             }
           >
-            A resource can support several independent, specialized
-            conversations.
+            {" "}
+            {t(
+              "A resource can support several independent, specialized conversations.",
+            )}{" "}
           </Empty>
         )}
       </section>
       <section className="section">
         <div className="section-heading">
-          <h2>Agent definitions</h2>
-          <span>Exact revisions preserved</span>
+          <h2>{t("Agent definitions")}</h2>
+          <span>{t("Exact revisions preserved")}</span>
         </div>
         {snapshot.agents.length ? (
           <div className="row-list">
@@ -105,25 +114,31 @@ export function Team() {
                 <span>
                   <strong>{agent.name}</strong>
                   <small>
-                    {agent.role} · revision {agent.revision}
+                    {agent.role} {t("· revision")} {agent.revision}
                   </small>
                 </span>
                 <span className="muted">
-                  {agent.delegation.allowed ? "Can delegate" : "Specialist"}
+                  {agent.delegation.allowed
+                    ? t("Can delegate")
+                    : t("Specialist")}
                 </span>
               </button>
             ))}
           </div>
         ) : (
           <Empty
-            title="No agents yet."
+            title={t("No agents yet.")}
             action={
               <button onClick={() => showForm({ kind: "agent" })}>
-                Create agent
+                {" "}
+                {t("Create agent")}{" "}
               </button>
             }
           >
-            Define a role and mission for the work you want to delegate.
+            {" "}
+            {t(
+              "Define a role and mission for the work you want to delegate.",
+            )}{" "}
           </Empty>
         )}
       </section>

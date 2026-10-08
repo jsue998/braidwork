@@ -42,12 +42,16 @@ async fn call<T: Send + 'static>(
     })?
 }
 #[tauri::command(rename_all = "snake_case")]
-async fn init_project(
+async fn create_project(
     app: AppHandle,
-    root: PathBuf,
-    name: String,
+    parent_directory: PathBuf,
+    folder_name: String,
+    display_name: String,
 ) -> Result<ProjectInfo, IpcError> {
-    call(app, move |s| s.init_project(&root, &name)).await
+    call(app, move |s| {
+        s.create_project(&parent_directory, &folder_name, &display_name)
+    })
+    .await
 }
 #[tauri::command(rename_all = "snake_case")]
 async fn open_project(app: AppHandle, root: PathBuf) -> Result<ProjectInfo, IpcError> {
@@ -166,7 +170,7 @@ async fn open_external_reference(app: AppHandle, session_id: SessionId) -> Resul
 }
 pub(crate) fn handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
-        init_project,
+        create_project,
         open_project,
         close_project,
         workspace_snapshot,

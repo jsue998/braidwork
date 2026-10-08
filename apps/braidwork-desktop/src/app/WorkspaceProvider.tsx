@@ -1,3 +1,4 @@
+import type { MessageKey } from "../i18n";
 import {
   useCallback,
   useEffect,
@@ -19,7 +20,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(() => isTauri());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<IpcError | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<MessageKey | null>(null);
   const [view, setView] = useState<View>("Overview");
   const [selection, select] = useState<Selection | null>(null);
   const [form, showForm] = useState<FormRequest | null>(null);
@@ -70,7 +71,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, [report]);
   const mutate = useCallback(
-    async <T,>(action: () => Promise<T>, message: string): Promise<T> => {
+    async <T,>(action: () => Promise<T>, message: MessageKey): Promise<T> => {
       setBusy(true);
       setError(null);
       try {
@@ -96,8 +97,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     await mutate(() => api.open(path), "Project opened");
     resetView();
   };
-  const init = async (path: string, name: string) => {
-    await mutate(() => api.init(path, name), "Project created");
+  const init = async (parent: string, folder: string, name: string) => {
+    await mutate(() => api.init(parent, folder, name), "Project created");
     resetView();
   };
   const close = async () => {

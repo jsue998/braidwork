@@ -606,3 +606,149 @@ fn native_configuration_enables_real_host_with_narrow_local_permissions() {
     assert!(capability.get("remote").is_none());
     assert!(include_bytes!("../../icons/icon.png").starts_with(b"\x89PNG"));
 }
+
+#[test]
+fn new_project_creates_only_a_direct_child_and_preserves_human_name() {
+    let parent = tempdir().unwrap();
+    let sentinel = parent.path().join("existing.txt");
+    fs::write(&sentinel, "keep me").unwrap();
+    let service = DesktopService::default();
+    let info = service
+        .create_project(parent.path(), "investigacion-vlsi", "Investigación VLSI")
+        .unwrap();
+    assert_eq!(
+        info.root,
+        parent
+            .path()
+            .join("investigacion-vlsi")
+            .canonicalize()
+            .unwrap()
+    );
+    assert_eq!(info.name, "Investigación VLSI");
+    assert!(!parent.path().join(".braidwork").exists());
+    assert_eq!(fs::read_to_string(sentinel).unwrap(), "keep me");
+    service.close_project().unwrap();
+    let reopened = service.open_project(&info.root).unwrap();
+    assert_eq!(reopened.name, info.name);
+    service.close_project().unwrap();
+    let unicode = service
+        .create_project(parent.path(), "日本旅行", "日本旅行")
+        .unwrap();
+    assert_eq!(unicode.name, "日本旅行");
+}
+
+#[test]
+fn portable_folder_validation_rejects_paths_control_and_reserved_names() {
+    let parent = tempdir().unwrap();
+    let service = DesktopService::default();
+    let invalid = [
+        "",
+        " ",
+        ".",
+        "..",
+        "a/b",
+        "a\\b",
+        "/root",
+        "a\nb",
+        "a\0b",
+        "a:b",
+        "a*b",
+        "a?b",
+        "a\"b",
+        "a<b",
+        "a>b",
+        "a|b",
+        "trailing ",
+        "trailing.",
+        "CON",
+        "pRn",
+        "aux",
+        "NUL",
+        "con.txt",
+        "com1",
+        "COM9",
+        "lpt1",
+        "LpT9",
+    ];
+    for folder in invalid {
+        let error = service
+            .create_project(parent.path(), folder, "Project")
+            .unwrap_err();
+        assert_eq!(error.code, "invalid_folder", "{folder:?}");
+    }
+    assert_eq!(fs::read_dir(parent.path()).unwrap().count(), 0);
+    for prefix in ["COM", "LPT"] {
+        for number in 1..=9 {
+            assert_eq!(
+                service
+                    .create_project(parent.path(), &format!("{prefix}{number}"), "Project")
+                    .unwrap_err()
+                    .code,
+                "invalid_folder"
+            );
+        }
+    }
+    assert!(
+        service
+            .create_project(parent.path(), "COM10", "Project")
+            .is_ok()
+    );
+}
+
+#[test]
+fn failed_creation_keeps_active_project_and_preexisting_content() {
+    let parent = tempdir().unwrap();
+    let service = DesktopService::default();
+    let original = service
+        .create_project(parent.path(), "active", "Active")
+        .unwrap();
+    let occupied = parent.path().join("occupied");
+    fs::create_dir(&occupied).unwrap();
+    fs::write(occupied.join("important.txt"), "original").unwrap();
+    assert_eq!(
+        service
+            .create_project(parent.path(), "occupied", "Other")
+            .unwrap_err()
+            .code,
+        "destination_exists"
+    );
+    assert_eq!(
+        service
+            .create_project(parent.path(), "active", "Other")
+            .unwrap_err()
+            .code,
+        "destination_exists"
+    );
+    assert_eq!(
+        service
+            .create_project(parent.path(), "unused", "  ")
+            .unwrap_err()
+            .code,
+        "invalid_name"
+    );
+    assert_eq!(
+        service
+            .create_project(&parent.path().join("missing"), "child", "Other")
+            .unwrap_err()
+            .code,
+        "invalid_parent"
+    );
+    assert_eq!(
+        service
+            .create_project(&occupied.join("important.txt"), "child", "Other")
+            .unwrap_err()
+            .code,
+        "invalid_parent"
+    );
+    assert_eq!(
+        service.workspace_snapshot().unwrap().project.root,
+        original.root
+    );
+    assert_eq!(
+        fs::read_to_string(occupied.join("important.txt")).unwrap(),
+        "original"
+    );
+    assert!(!occupied.join(".braidwork").exists());
+    assert!(!parent.path().join("unused").exists());
+    assert!(!parent.path().join("missing").exists());
+}

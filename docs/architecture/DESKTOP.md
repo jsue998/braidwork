@@ -50,13 +50,29 @@ and file work off the UI thread. A failed project switch preserves the previous
 root. Close only releases the active root; it never deletes data.
 
 Open requires the exact selected project root and uses strict `Project::open`.
-Create uses `Project::init` and its existing exclusive directory / database-first /
-final-marker-rename strategy. Missing databases and corrupt metadata are errors,
+Create separates a human display name, a folder component, and an existing parent
+directory selected through the native dialog. `create_project` validates names,
+canonicalizes the parent, joins the single component, and exclusively creates the
+new child before calling `Project::init`. The chosen parent is never initialized.
+Existing destinations (including empty directories) are rejected; opening an
+existing project remains a separate action. Unicode display names are preserved.
+The UI suggests a deterministic folder name while the name is entered, but stops
+changing it once the user edits Folder. The path preview is presentation only;
+Rust constructs the actual root and selects it only after successful initialization.
+
+Folder validation is authoritative in Rust: reject empty/whitespace-only names,
+`.`/`..`, separators, control characters, `: * ? " < > |`, trailing spaces/dots,
+and case-insensitive Windows reserved names (including their extensions).
+No arbitrary parent creation or recursive cleanup is performed. If initialization
+fails, `remove_dir` attempts to remove only the still-empty new child; partial or
+externally added content remains, the original error survives, and the previous
+active project is retained. `Project::init` keeps its existing exclusive directory /
+database-first / final-marker-rename strategy. Missing databases and corrupt metadata are errors,
 not triggers for repairs, replacement projects, or a new empty state.
 
 ## IPC and frontend state
 
-Commands are explicit: `open_project`, `init_project`, `close_project`,
+Commands are explicit: `open_project`, `create_project`, `close_project`,
 `workspace_snapshot`, `create_resource`, `create_agent`, `create_session`,
 `create_task`, `set_task_status`, `create_assignment`, `create_delegation`,
 `prepare_capsule`, `render_capsule`, `mark_dispatched`, `ingest_text`, `ingest_file`,
@@ -113,9 +129,38 @@ The inspector displays the selected resource, exact agent revision, session, tas
 assignment workflow, or result. IDs remain available under Technical details;
 forms generate IDs in Rust. User-facing “Agent”, “Assigned work”, “Instructions”,
 “Result”, and “History” do not collapse AgentSpec, Assignment, TaskCapsule, Artifact,
-or Receipt. The compact CSS token system follows system dark/light theme, with
+or Receipt. The compact CSS token system defaults to explicit Dark, with
 visible focus, labeled controls, native modal keyboard focus, and reduced-motion
 support. At narrower desktop widths the inspector overlays the workspace.
+
+## UI language, preferences, and visual identity
+
+Typed local dictionaries provide English and Spanish with exactly matching keys.
+The initial language follows `navigator.language` (`es*` selects Spanish, otherwise
+English) unless an explicit preference exists. Compact EN/ES and Dark/Light/System
+controls appear on the start screen and topbar; switching requires no project
+mutation. All interface labels, statuses, forms, feedback, accessibility text, and
+frontend-started native dialog titles use this layer. User names, objectives,
+paths, model IDs, and result content are never translated automatically.
+Common IPC failures are localized by `error.code`; unknown codes retain the
+backend message. Expandable details preserve the original backend wording and cause.
+
+Only `braidwork.ui.language` and `braidwork.ui.theme` are stored in localStorage.
+These are noncanonical UI preferences, not project metadata or cached project data.
+Dark is the first-run default even on a light OS. The root has an explicit
+`data-theme` attribute; Light has its own sober palette, and only System subscribes
+to OS color-scheme changes. Unavailable preference storage does not prevent use.
+
+The visual language is a retro technical workstation: near-black surfaces,
+restrained phosphor/olive accents, amber warnings, visible fine borders, and 2–4px
+corners. Local monospace stacks mark branding, navigation, labels, headings,
+metrics, and technical metadata; prose and long output remain readable. There are
+no CRT effects, neon shadows, terminal UI, remote fonts, or animated decoration.
+The shell structure remains unchanged. Project names lead; paths are smaller,
+ellipsized secondary text with full-path tooltips. Task creation reads “New task” /
+“Nueva tarea”. Status text and distinct symbols complement color, without adding
+domain states or fabricated progress. The delegation view loads on demand and its
+keyboard instructions describe actual selection/movement, never unsupported deletion.
 
 ## Manual workflow
 

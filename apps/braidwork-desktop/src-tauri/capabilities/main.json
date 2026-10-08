@@ -6,7 +6,7 @@
   "permissions": [
     "dialog:allow-open",
     "clipboard-manager:allow-write-text",
-    "allow-init-project",
+    "allow-create-project",
     "allow-open-project",
     "allow-close-project",
     "allow-workspace-snapshot",

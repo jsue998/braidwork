@@ -1,33 +1,35 @@
+import { useI18n } from "../i18n/context";
 import { ArrowRight, Plus } from "lucide-react";
 import { useWorkspace } from "../app/context";
 import { assignmentName, attention, completion } from "../lib/derive";
 import { Empty, PageHeading, Technical } from "../components/Common";
 export function Overview() {
+  const { t } = useI18n();
   const { snapshot, select, showForm } = useWorkspace();
   if (!snapshot) return null;
   const progress = completion(snapshot);
-  const needs = attention(snapshot);
+  const needs = attention(snapshot, t);
   return (
     <>
       <PageHeading
         title={snapshot.project.name}
-        subtitle="Organize your team. Direct the work. Keep the results."
+        subtitle={t("Organize your team. Direct the work. Keep the results.")}
         action={
           <button
             className="primary"
             onClick={() => showForm({ kind: "task" })}
           >
-            <Plus size={16} /> Create work
+            <Plus size={16} /> {t("Create work")}{" "}
           </button>
         }
       />
-      <section className="metrics" aria-label="Real project counts">
+      <section className="metrics" aria-label={t("Real project counts")}>
         {[
-          ["Tasks", snapshot.tasks.length],
-          ["Sessions", snapshot.sessions.length],
-          ["Assigned work", snapshot.assignments.length],
+          [t("Tasks"), snapshot.tasks.length],
+          [t("Sessions"), snapshot.sessions.length],
+          [t("Assigned work"), snapshot.assignments.length],
           [
-            "Results received",
+            t("Results received"),
             snapshot.workflow.filter((w) => w.result).length,
           ],
         ].map(([label, value]) => (
@@ -39,31 +41,37 @@ export function Overview() {
       </section>
       <div className="status-counts">
         <p>
-          Tasks: {snapshot.tasks.filter((t) => t.status === "pending").length}{" "}
-          pending ·{" "}
-          {snapshot.tasks.filter((t) => t.status === "in_progress").length} in
-          progress · {progress.completed} completed
+          {" "}
+          {t("Tasks:")}{" "}
+          {snapshot.tasks.filter((t) => t.status === "pending").length}{" "}
+          {t("pending ·")}{" "}
+          {snapshot.tasks.filter((t) => t.status === "in_progress").length}{" "}
+          {t("in progress ·")} {progress.completed} {t("completed")}{" "}
         </p>
         <p>
-          Assigned work:{" "}
+          {" "}
+          {t("Assigned work:")}{" "}
           {snapshot.assignments.filter((a) => a.status === "prepared").length}{" "}
-          assigned ·{" "}
+          {t("assigned ·")}{" "}
           {snapshot.assignments.filter((a) => a.status === "dispatched").length}{" "}
-          dispatched ·{" "}
+          {t("dispatched ·")}{" "}
           {
             snapshot.assignments.filter((a) => a.status === "result_received")
               .length
           }{" "}
-          results received
+          {t("results received")}{" "}
         </p>
       </div>
       <section className="section">
         <div className="section-heading">
-          <h2>Task completion</h2>
+          <h2>{t("Task completion")}</h2>
           <span>
             {progress.percent === null
-              ? "No tasks yet"
-              : `${progress.completed} / ${progress.total} tasks declared completed`}
+              ? t("No tasks yet")
+              : t("{completed} / {total} tasks declared completed", {
+                  completed: progress.completed,
+                  total: progress.total,
+                })}
           </span>
         </div>
         {progress.percent !== null ? (
@@ -71,23 +79,26 @@ export function Overview() {
             <progress
               value={progress.completed}
               max={progress.total}
-              aria-label="User-declared task completion"
+              aria-label={t("User-declared task completion")}
             />
             <p className="muted">
-              {progress.percent}% of tasks declared completed by you. Result
-              receipt does not complete a task.
+              {progress.percent}
+              {t(
+                "% of tasks declared completed by you. Result receipt does not complete a task.",
+              )}{" "}
             </p>
           </>
         ) : (
           <p className="muted">
-            Create your first task to begin organizing the project.
+            {" "}
+            {t("Create your first task to begin organizing the project.")}{" "}
           </p>
         )}
       </section>
       <section className="section">
         <div className="section-heading">
-          <h2>Needs attention</h2>
-          <span>Derived from recorded workflow state</span>
+          <h2>{t("Needs attention")}</h2>
+          <span>{t("Derived from recorded workflow state")}</span>
         </div>
         {needs.length ? (
           <div className="attention-list">
@@ -100,7 +111,7 @@ export function Overview() {
                 }
               >
                 <span>
-                  <strong>{assignmentName(snapshot, assignment)}</strong>
+                  <strong>{assignmentName(snapshot, assignment, t)}</strong>
                   <small>{reason}</small>
                 </span>
                 <ArrowRight size={17} />
@@ -108,15 +119,20 @@ export function Overview() {
             ))}
           </div>
         ) : (
-          <Empty title="Your workspace is ready">
-            Create agents and sessions, then assign work to your team.
+          <Empty title={t("Your workspace is ready")}>
+            {" "}
+            {t(
+              "Create agents and sessions, then assign work to your team.",
+            )}{" "}
           </Empty>
         )}
       </section>
       <Technical>
         <p className="footnote">
-          Project format {snapshot.project.format_version} · Store schema{" "}
-          {snapshot.project.schema_version} · Local canonical state
+          {" "}
+          {t("Project format")} {snapshot.project.format_version}{" "}
+          {t("· Store schema")} {snapshot.project.schema_version}{" "}
+          {t("· Local canonical state")}{" "}
         </p>
       </Technical>
     </>

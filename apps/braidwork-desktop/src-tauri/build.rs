@@ -3,7 +3,7 @@ fn main() {
     {
         let attributes = tauri_build::Attributes::new().app_manifest(
             tauri_build::AppManifest::new().commands(&[
-                "init_project",
+                "create_project",
                 "open_project",
                 "close_project",
                 "workspace_snapshot",

@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/context";
 import { useEffect, useRef, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { useWorkspace } from "../app/context";
@@ -7,8 +8,18 @@ import type { AccessMode, ResourceStatus, Scarcity } from "../types/ipc";
 import { ErrorNotice, Field } from "../components/Common";
 const text = (data: FormData, key: string) => String(data.get(key) ?? "");
 export function CreationForms() {
-  const { snapshot, form, busy, showForm, mutate, select, error, clearError } =
-    useWorkspace();
+  const { t } = useI18n();
+  const {
+    snapshot,
+    form,
+    busy,
+    showForm,
+    mutate,
+    select,
+    error,
+    clearError,
+    report,
+  } = useWorkspace();
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const node = dialog.current;
@@ -17,12 +28,12 @@ export function CreationForms() {
   }, [form?.kind]);
   if (!snapshot || !form) return null;
   const titles = {
-    resource: "Create AI resource",
-    agent: "Create agent",
-    session: "Create session",
-    task: "Create work",
-    assignment: "Assign to AI",
-    delegation: "Delegate work",
+    resource: t("Create AI resource"),
+    agent: t("Create agent"),
+    session: t("Create session"),
+    task: t("Create work"),
+    assignment: t("Assign to AI"),
+    delegation: t("Delegate work"),
   };
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -66,7 +77,7 @@ export function CreationForms() {
         }
         case "session": {
           const agent = snapshot.agents[Number(text(data, "agent"))];
-          if (!agent) throw new Error("Choose an existing agent revision.");
+          if (!agent) throw new Error(t("Choose an existing agent revision."));
           const session = await mutate(
             () =>
               api.session({
@@ -112,7 +123,8 @@ export function CreationForms() {
         }
       }
       showForm(null);
-    } catch {
+    } catch (error) {
+      report(error);
       /* Provider displays the typed error; preserve the form for correction. */
     }
   };
@@ -130,7 +142,7 @@ export function CreationForms() {
         <h2 id="creation-title">{titles[form.kind]}</h2>
         <button
           className="icon-button"
-          aria-label="Close form"
+          aria-label={t("Close form")}
           disabled={busy}
           onClick={() => showForm(null)}
         >
@@ -141,43 +153,43 @@ export function CreationForms() {
       <form onSubmit={(event) => void submit(event)}>
         {form.kind === "resource" && (
           <>
-            <Field label="Name">
+            <Field label={t("Name")}>
               {(id) => (
                 <input
                   id={id}
                   name="name"
                   required
-                  placeholder="Primary AI account"
+                  placeholder={t("Primary AI account")}
                 />
               )}
             </Field>
-            <Field label="Provider">
+            <Field label={t("Provider")}>
               {(id) => (
                 <input
                   id={id}
                   name="provider"
                   required
-                  placeholder="Provider name"
+                  placeholder={t("Provider name")}
                 />
               )}
             </Field>
             <details>
-              <summary>Advanced</summary>
+              <summary>{t("Advanced")}</summary>
               <EnumField
                 name="access_mode"
-                label="Access mode"
+                label={t("Access mode")}
                 values={["manual", "api", "harness", "local"]}
                 defaultValue="manual"
               />
               <EnumField
                 name="scarcity"
-                label="Scarcity"
+                label={t("Scarcity")}
                 values={["abundant", "normal", "scarce", "critical"]}
                 defaultValue="normal"
               />
               <EnumField
                 name="status"
-                label="Status"
+                label={t("Status")}
                 values={["available", "unavailable", "exhausted"]}
                 defaultValue="available"
               />
@@ -186,43 +198,49 @@ export function CreationForms() {
         )}
         {form.kind === "agent" && (
           <>
-            <Field label="Name">
+            <Field label={t("Name")}>
               {(id) => (
                 <input
                   id={id}
                   name="name"
                   required
-                  placeholder="Travel Researcher"
+                  placeholder={t("Travel Researcher")}
                 />
               )}
             </Field>
-            <Field label="Role">
+            <Field label={t("Role")}>
               {(id) => (
                 <input
                   id={id}
                   name="role"
                   required
-                  placeholder="Research specialist"
+                  placeholder={t("Research specialist")}
                 />
               )}
             </Field>
-            <Field label="Mission">
+            <Field label={t("Mission")}>
               {(id) => <textarea id={id} name="mission" required rows={3} />}
             </Field>
-            <Field label="Instructions" hint="One instruction per line.">
+            <Field
+              label={t("Instructions")}
+              hint={t("One instruction per line.")}
+            >
               {(id) => <textarea id={id} name="instructions" rows={3} />}
             </Field>
-            <Field label="Expertise" hint="One area per line.">
+            <Field label={t("Expertise")} hint={t("One area per line.")}>
               {(id) => <textarea id={id} name="expertise" rows={2} />}
             </Field>
             <details>
-              <summary>Advanced</summary>
+              <summary>{t("Advanced")}</summary>
               <label className="check">
-                <input type="checkbox" name="allowed" /> Can delegate
+                <input type="checkbox" name="allowed" />{" "}
+                {t("Can delegate")}{" "}
               </label>
               <Field
-                label="Maximum direct delegates"
-                hint="Leave empty for no direct-child limit; policy still controls whether delegation is allowed."
+                label={t("Maximum direct delegates")}
+                hint={t(
+                  "Leave empty for no direct-child limit; policy still controls whether delegation is allowed.",
+                )}
               >
                 {(id) => (
                   <input
@@ -236,28 +254,32 @@ export function CreationForms() {
                 )}
               </Field>
               <p className="muted">
-                This creates revision 1. Historical definitions are preserved.
+                {" "}
+                {t(
+                  "This creates revision 1. Historical definitions are preserved.",
+                )}{" "}
               </p>
             </details>
           </>
         )}
         {form.kind === "session" && (
           <>
-            <Field label="Label">
+            <Field label={t("Label")}>
               {(id) => (
                 <input
                   id={id}
                   name="label"
                   required
-                  placeholder="Research conversation"
+                  placeholder={t("Research conversation")}
                 />
               )}
             </Field>
-            <Field label="Resource">
+            <Field label={t("Resource")}>
               {(id) => (
                 <select id={id} name="resource" required defaultValue="">
                   <option value="" disabled>
-                    Choose a resource
+                    {" "}
+                    {t("Choose a resource")}{" "}
                   </option>
                   {snapshot.resources.map((resource) => (
                     <option key={resource.id} value={resource.id}>
@@ -267,54 +289,61 @@ export function CreationForms() {
                 </select>
               )}
             </Field>
-            <Field label="Agent">
+            <Field label={t("Agent")}>
               {(id) => (
                 <select id={id} name="agent" required defaultValue="">
                   <option value="" disabled>
-                    Choose an exact agent revision
+                    {" "}
+                    {t("Choose an exact agent revision")}{" "}
                   </option>
                   {snapshot.agents.map((agent, index) => (
                     <option key={`${agent.id}@${agent.revision}`} value={index}>
-                      {agent.name} · {agent.role} · revision {agent.revision}
+                      {agent.name} · {agent.role} {t("· revision")}{" "}
+                      {agent.revision}
                     </option>
                   ))}
                 </select>
               )}
             </Field>
             <Field
-              label="External reference (optional)"
-              hint="A chat URL or an opaque label. No provider login is required."
+              label={t("External reference (optional)")}
+              hint={t(
+                "A chat URL or an opaque label. No provider login is required.",
+              )}
             >
               {(id) => <input id={id} name="external_ref" />}
             </Field>
             {(!snapshot.resources.length || !snapshot.agents.length) && (
               <p className="muted">
-                Create a resource and an agent before creating a session.
+                {" "}
+                {t(
+                  "Create a resource and an agent before creating a session.",
+                )}{" "}
               </p>
             )}
           </>
         )}
         {form.kind === "task" && (
           <>
-            <Field label="Title">
+            <Field label={t("Title")}>
               {(id) => (
                 <input
                   id={id}
                   name="title"
                   required
-                  placeholder="Research transportation"
+                  placeholder={t("Research transportation")}
                 />
               )}
             </Field>
-            <Field label="Objective">
+            <Field label={t("Objective")}>
               {(id) => <textarea id={id} name="objective" required rows={4} />}
             </Field>
             <details>
-              <summary>Advanced</summary>
-              <Field label="Parent work">
+              <summary>{t("Advanced")}</summary>
+              <Field label={t("Parent work")}>
                 {(id) => (
                   <select id={id} name="parent">
-                    <option value="">No parent</option>
+                    <option value="">{t("No parent")}</option>
                     {snapshot.tasks.map((task) => (
                       <option key={task.id} value={task.id}>
                         {task.title}
@@ -324,7 +353,7 @@ export function CreationForms() {
                 )}
               </Field>
               <fieldset>
-                <legend>Dependencies</legend>
+                <legend>{t("Dependencies")}</legend>
                 {snapshot.tasks.length ? (
                   snapshot.tasks.map((task) => (
                     <label className="check" key={task.id}>
@@ -337,7 +366,7 @@ export function CreationForms() {
                     </label>
                   ))
                 ) : (
-                  <p className="muted">No existing work to depend on.</p>
+                  <p className="muted">{t("No existing work to depend on.")}</p>
                 )}
               </fieldset>
             </details>
@@ -345,7 +374,7 @@ export function CreationForms() {
         )}
         {form.kind === "assignment" && (
           <>
-            <Field label="Work">
+            <Field label={t("Work")}>
               {(id) => (
                 <select
                   id={id}
@@ -354,7 +383,8 @@ export function CreationForms() {
                   defaultValue={form.task_id ?? ""}
                 >
                   <option value="" disabled>
-                    Choose work
+                    {" "}
+                    {t("Choose work")}{" "}
                   </option>
                   {snapshot.tasks.map((task) => (
                     <option key={task.id} value={task.id}>
@@ -364,74 +394,82 @@ export function CreationForms() {
                 </select>
               )}
             </Field>
-            <Field label="Session">
+            <Field label={t("Session")}>
               {(id) => (
                 <select id={id} name="session" required defaultValue="">
                   <option value="" disabled>
-                    Choose a session
+                    {" "}
+                    {t("Choose a session")}{" "}
                   </option>
                   {snapshot.sessions.map((session) => (
                     <option key={session.id} value={session.id}>
-                      {session.label} · {stateLabel(session.status)}
+                      {session.label} · {stateLabel(session.status, t)}
                     </option>
                   ))}
                 </select>
               )}
             </Field>
             <p className="muted">
-              This assignment preserves the session's exact agent revision.
-              Resource selection remains explicit.
+              {" "}
+              {t(
+                "This assignment preserves the session's exact agent revision. Resource selection remains explicit.",
+              )}{" "}
             </p>
           </>
         )}
         {form.kind === "delegation" && (
           <>
-            <Field label="From assigned work">
+            <Field label={t("From assigned work")}>
               {(id) => (
                 <select id={id} name="from" required defaultValue="">
                   <option value="" disabled>
-                    Choose a parent assignment
+                    {" "}
+                    {t("Choose a parent assignment")}{" "}
                   </option>
                   {snapshot.assignments.map((assignment) => (
                     <option key={assignment.id} value={assignment.id}>
-                      {assignmentName(snapshot, assignment)}
+                      {assignmentName(snapshot, assignment, t)}
                     </option>
                   ))}
                 </select>
               )}
             </Field>
-            <Field label="To assigned work">
+            <Field label={t("To assigned work")}>
               {(id) => (
                 <select id={id} name="to" required defaultValue="">
                   <option value="" disabled>
-                    Choose a child assignment
+                    {" "}
+                    {t("Choose a child assignment")}{" "}
                   </option>
                   {snapshot.assignments.map((assignment) => (
                     <option key={assignment.id} value={assignment.id}>
-                      {assignmentName(snapshot, assignment)}
+                      {assignmentName(snapshot, assignment, t)}
                     </option>
                   ))}
                 </select>
               )}
             </Field>
             <p className="muted">
-              The parent agent's stored delegation policy is enforced. Work
-              dependencies remain a separate graph.
+              {" "}
+              {t(
+                "The parent agent's stored delegation policy is enforced. Work dependencies remain a separate graph.",
+              )}{" "}
             </p>
           </>
         )}
         <footer>
           <button type="button" disabled={busy} onClick={() => showForm(null)}>
-            Cancel
+            {" "}
+            {t("Cancel")}{" "}
           </button>
           <button className="primary" disabled={busy} type="submit">
             {busy
-              ? "Saving…"
+              ? t("Saving…")
               : form.kind === "assignment"
-                ? "Assign work"
+                ? t("Assign work")
                 : form.kind === "delegation"
-                  ? "Record delegation"
-                  : "Create"}
+                  ? t("Record delegation")
+                  : t("Create")}
           </button>
         </footer>
       </form>
@@ -449,13 +487,14 @@ function EnumField({
   values: string[];
   defaultValue: string;
 }) {
+  const { t } = useI18n();
   return (
     <Field label={label}>
       {(id) => (
         <select id={id} name={name} defaultValue={defaultValue}>
           {values.map((value) => (
             <option key={value} value={value}>
-              {stateLabel(value)}
+              {stateLabel(value, t)}
             </option>
           ))}
         </select>

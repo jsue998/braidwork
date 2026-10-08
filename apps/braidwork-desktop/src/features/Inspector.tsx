@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/context";
 import { X } from "lucide-react";
 import { useWorkspace } from "../app/context";
 import { Badge, Technical, ErrorNotice } from "../components/Common";
@@ -6,6 +7,7 @@ import { ManualWorkflow, ResultInspector } from "./ManualWorkflow";
 import { api } from "../lib/api";
 import type { TaskStatus } from "../types/ipc";
 export function Inspector() {
+  const { t } = useI18n();
   const {
     snapshot,
     selection,
@@ -26,7 +28,7 @@ export function Inspector() {
       <>
         <h2>
           {snapshot.tasks.find((t) => t.id === assignment?.task_id)?.title ??
-            "Result"}
+            t("Result")}
         </h2>
         <p>
           {
@@ -44,16 +46,16 @@ export function Inspector() {
         <h2>{resource.name}</h2>
         <p>{resource.provider}</p>
         <dl>
-          <dt>Access</dt>
-          <dd>{stateLabel(resource.access_mode)}</dd>
-          <dt>Scarcity</dt>
-          <dd>{stateLabel(resource.scarcity)}</dd>
-          <dt>Status</dt>
+          <dt>{t("Access")}</dt>
+          <dd>{stateLabel(resource.access_mode, t)}</dd>
+          <dt>{t("Scarcity")}</dt>
+          <dd>{stateLabel(resource.scarcity, t)}</dd>
+          <dt>{t("Status")}</dt>
           <dd>
             <Badge state={resource.status} />
           </dd>
         </dl>
-        <h3>Sessions using this resource</h3>
+        <h3>{t("Sessions using this resource")}</h3>
         {snapshot.sessions
           .filter((s) => s.resource_id === resource.id)
           .map((session) => (
@@ -66,7 +68,9 @@ export function Inspector() {
             </button>
           ))}
         <Technical>
-          <p>Resource: {resource.id}</p>
+          <p>
+            {t("Resource:")} {resource.id}
+          </p>
         </Technical>
       </>
     );
@@ -78,27 +82,30 @@ export function Inspector() {
       <>
         <h2>{agent.name}</h2>
         <p>
-          {agent.role} · revision {agent.revision}
+          {agent.role} {t("· revision")} {agent.revision}
         </p>
-        <h3>Mission</h3>
+        <h3>{t("Mission")}</h3>
         <p className="preserve">{agent.mission}</p>
-        <h3>Instructions</h3>
+        <h3>{t("Instructions")}</h3>
         <ul>
           {agent.instructions.map((item, index) => (
             <li key={index}>{item}</li>
           ))}
         </ul>
-        <h3>Expertise</h3>
-        <p>{agent.expertise.join(", ") || "Not specified"}</p>
-        <h3>Delegation policy</h3>
+        <h3>{t("Expertise")}</h3>
+        <p>{agent.expertise.join(", ") || t("Not specified")}</p>
+        <h3>{t("Delegation policy")}</h3>
         <p>
-          {agent.delegation.allowed ? "Can delegate" : "Delegation not allowed"}{" "}
-          · maximum direct delegates:{" "}
-          {agent.delegation.max_children ?? "No limit"}
+          {agent.delegation.allowed
+            ? t("Can delegate")
+            : t("Delegation not allowed")}{" "}
+          {t("· maximum direct delegates:")}{" "}
+          {agent.delegation.max_children ?? t("No limit")}
         </p>
         <Technical>
           <p>
-            Agent: {agent.id}@{agent.revision}
+            {" "}
+            {t("Agent:")} {agent.id}@{agent.revision}
           </p>
         </Technical>
       </>
@@ -115,28 +122,36 @@ export function Inspector() {
         <h2>{session.label}</h2>
         <Badge state={session.status} />
         <dl>
-          <dt>Agent</dt>
+          <dt>{t("Agent")}</dt>
           <dd>
-            {agent?.name} · {agent?.role} · revision{" "}
+            {agent?.name} · {agent?.role} {t("· revision")}{" "}
             {session.agent_spec_revision}
           </dd>
-          <dt>Resource</dt>
+          <dt>{t("Resource")}</dt>
           <dd>
             {snapshot.resources.find((r) => r.id === session.resource_id)?.name}
           </dd>
-          <dt>External reference</dt>
+          <dt>{t("External reference")}</dt>
           <dd className="reference">
-            {session.external_ref ?? "Not specified"}
+            {session.external_ref ?? t("Not specified")}
           </dd>
         </dl>
         <p className="muted">
-          The actual execution model is recorded on each result when known.
+          {" "}
+          {t(
+            "The actual execution model is recorded on each result when known.",
+          )}{" "}
         </p>
         <Technical>
-          <p>Session: {session.id}</p>
-          <p>Resource: {session.resource_id}</p>
           <p>
-            Agent: {session.agent_spec_id}@{session.agent_spec_revision}
+            {t("Session:")} {session.id}
+          </p>
+          <p>
+            {t("Resource:")} {session.resource_id}
+          </p>
+          <p>
+            {" "}
+            {t("Agent:")} {session.agent_spec_id}@{session.agent_spec_revision}
           </p>
         </Technical>
       </>
@@ -150,7 +165,7 @@ export function Inspector() {
       <>
         <h2>{task.title}</h2>
         <Badge state={task.status} />
-        <h3>Objective</h3>
+        <h3>{t("Objective")}</h3>
         <p className="preserve">{task.objective}</p>
         <form
           className="compact-form"
@@ -165,36 +180,39 @@ export function Inspector() {
             ).catch(() => {});
           }}
         >
-          <label htmlFor="task-status">Declare task status</label>
+          <label htmlFor="task-status">{t("Declare task status")}</label>
           <select
             id="task-status"
             name="status"
             defaultValue={task.status}
             key={task.status}
           >
-            <option value="pending">Pending</option>
-            <option value="in_progress">In progress</option>
-            <option value="completed">Completed</option>
+            <option value="pending">{t("Pending")}</option>
+            <option value="in_progress">{t("In progress")}</option>
+            <option value="completed">{t("Completed")}</option>
           </select>
           <button disabled={busy} type="submit">
-            Record status
+            {" "}
+            {t("Record status")}{" "}
           </button>
-          <small>This is your declaration. It does not verify a result.</small>
+          <small>
+            {t("This is your declaration. It does not verify a result.")}
+          </small>
         </form>
         <dl>
-          <dt>Parent</dt>
+          <dt>{t("Parent")}</dt>
           <dd>
             {snapshot.tasks.find((t) => t.id === task.parent)?.title ??
-              "No parent"}
+              t("No parent")}
           </dd>
-          <dt>Dependencies</dt>
+          <dt>{t("Dependencies")}</dt>
           <dd>
             {task.dependencies
               .map((id) => snapshot.tasks.find((t) => t.id === id)?.title ?? id)
-              .join(", ") || "None"}
+              .join(", ") || t("None")}
           </dd>
         </dl>
-        <h3>Assigned work</h3>
+        <h3>{t("Assigned work")}</h3>
         {assignments.map((a) => (
           <button
             key={a.id}
@@ -203,7 +221,7 @@ export function Inspector() {
           >
             <span>
               {snapshot.sessions.find((s) => s.id === a.session_id)?.label}
-              <small>{assignmentLabel(a.status)}</small>
+              <small>{assignmentLabel(a.status, t)}</small>
             </span>
           </button>
         ))}
@@ -211,21 +229,24 @@ export function Inspector() {
           className="primary"
           onClick={() => showForm({ kind: "assignment", task_id: task.id })}
         >
-          Assign to AI
+          {" "}
+          {t("Assign to AI")}{" "}
         </button>
         <Technical>
-          <p>Task: {task.id}</p>
+          <p>
+            {t("Task:")} {task.id}
+          </p>
         </Technical>
       </>
     );
   }
   return (
-    <aside className="inspector" aria-label="Selection inspector">
+    <aside className="inspector" aria-label={t("Selection inspector")}>
       <header className="inspector-heading">
-        <span>INSPECTOR</span>
+        <span>{t("INSPECTOR")}</span>
         <button
           className="icon-button"
-          aria-label="Close inspector"
+          aria-label={t("Close inspector")}
           onClick={() => select(null)}
         >
           <X size={18} />
@@ -234,7 +255,7 @@ export function Inspector() {
       <div className="inspector-body">
         {error && <ErrorNotice error={error} dismiss={clearError} />}
         {content || (
-          <p>This record is no longer available. Refresh the project.</p>
+          <p>{t("This record is no longer available. Refresh the project.")}</p>
         )}
       </div>
     </aside>

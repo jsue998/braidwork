@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useI18n } from "../i18n/context";
+import { useState, lazy, Suspense } from "react";
 import { Plus, GitBranch } from "lucide-react";
 import { useWorkspace } from "../app/context";
 import { agentFor, assignmentLabel } from "../lib/derive";
 import { Badge, Empty, PageHeading } from "../components/Common";
-import { DelegationGraph } from "./DelegationGraph";
+const DelegationGraph = lazy(() =>
+  import("./DelegationGraph").then((module) => ({
+    default: module.DelegationGraph,
+  })),
+);
 export function Work() {
+  const { t } = useI18n();
   const [tab, setTab] = useState<"tasks" | "assignments" | "delegations">(
     "tasks",
   );
@@ -13,18 +19,20 @@ export function Work() {
   return (
     <>
       <PageHeading
-        title="Work"
-        subtitle="Define the goal, assign it to a session, and track the handoff."
+        title={t("Work")}
+        subtitle={t(
+          "Define the goal, assign it to a session, and track the handoff.",
+        )}
         action={
           <button
             className="primary"
             onClick={() => showForm({ kind: "task" })}
           >
-            <Plus size={16} /> Create work
+            <Plus size={16} /> {t("Create work")}{" "}
           </button>
         }
       />
-      <nav className="tabs" aria-label="Work views">
+      <nav className="tabs" aria-label={t("Work views")}>
         {(["tasks", "assignments", "delegations"] as const).map((value) => (
           <button
             key={value}
@@ -32,10 +40,10 @@ export function Work() {
             onClick={() => setTab(value)}
           >
             {value === "tasks"
-              ? "Tasks"
+              ? t("Tasks")
               : value === "assignments"
-                ? "Assigned work"
-                : "Delegations"}
+                ? t("Assigned work")
+                : t("Delegations")}
           </button>
         ))}
       </nav>
@@ -56,9 +64,12 @@ export function Work() {
                       snapshot.assignments.filter((a) => a.task_id === task.id)
                         .length
                     }{" "}
-                    assignments{task.parent ? " · Has parent" : ""}
+                    {t("assignments")}
+                    {task.parent ? t(" · Has parent") : ""}
                     {task.dependencies.length
-                      ? ` · ${task.dependencies.length} prerequisites`
+                      ? t(" · {count} prerequisites", {
+                          count: task.dependencies.length,
+                        })
                       : ""}
                   </small>
                 </span>
@@ -68,24 +79,30 @@ export function Work() {
           </div>
         ) : (
           <Empty
-            title="No work yet."
+            title={t("No work yet.")}
             action={
               <button onClick={() => showForm({ kind: "task" })}>
-                Create work
+                {" "}
+                {t("Create work")}{" "}
               </button>
             }
           >
-            Begin with a clear title and objective.
+            {" "}
+            {t("Begin with a clear title and objective.")}{" "}
           </Empty>
         ))}
       {tab === "assignments" && (
         <>
           <div className="toolbar">
             <span className="muted">
-              Each assignment captures one session and agent revision.
+              {" "}
+              {t(
+                "Each assignment captures one session and agent revision.",
+              )}{" "}
             </span>
             <button onClick={() => showForm({ kind: "assignment" })}>
-              Assign to AI
+              {" "}
+              {t("Assign to AI")}{" "}
             </button>
           </div>
           {snapshot.assignments.length ? (
@@ -93,10 +110,10 @@ export function Work() {
               <table>
                 <thead>
                   <tr>
-                    <th>Work</th>
-                    <th>Session</th>
-                    <th>Agent</th>
-                    <th>State</th>
+                    <th>{t("Work")}</th>
+                    <th>{t("Session")}</th>
+                    <th>{t("Agent")}</th>
+                    <th>{t("State")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -111,27 +128,28 @@ export function Work() {
                         >
                           {snapshot.tasks.find(
                             (t) => t.id === assignment.task_id,
-                          )?.title ?? "Missing task"}
+                          )?.title ?? t("Missing task")}
                         </button>
                       </td>
                       <td>
                         {snapshot.sessions.find(
                           (s) => s.id === assignment.session_id,
-                        )?.label ?? "Missing session"}
+                        )?.label ?? t("Missing session")}
                       </td>
                       <td>
                         {agentFor(snapshot, assignment)?.name ??
-                          "Missing agent"}
+                          t("Missing agent")}
                       </td>
-                      <td>{assignmentLabel(assignment.status)}</td>
+                      <td>{assignmentLabel(assignment.status, t)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <Empty title="No assigned work yet.">
-              Choose a task and assign it to an existing session.
+            <Empty title={t("No assigned work yet.")}>
+              {" "}
+              {t("Choose a task and assign it to an existing session.")}{" "}
             </Empty>
           )}
         </>
@@ -140,13 +158,17 @@ export function Work() {
         <>
           <div className="toolbar">
             <span className="muted">
-              {snapshot.delegations.length} recorded delegations
+              {snapshot.delegations.length} {t("recorded delegations")}{" "}
             </span>
             <button onClick={() => showForm({ kind: "delegation" })}>
-              <GitBranch size={16} /> Delegate work
+              <GitBranch size={16} /> {t("Delegate work")}{" "}
             </button>
           </div>
-          <DelegationGraph />
+          <Suspense
+            fallback={<p role="status">{t("Loading delegation graph…")}</p>}
+          >
+            <DelegationGraph />
+          </Suspense>
         </>
       )}
     </>

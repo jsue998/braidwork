@@ -1,15 +1,19 @@
+import { useI18n } from "../i18n/context";
 import { useWorkspace } from "../app/context";
 import { agentFor, modelLabel, stateLabel, usageLabel } from "../lib/derive";
 import { Empty, PageHeading } from "../components/Common";
 export function Results() {
+  const { t } = useI18n();
   const { snapshot, select } = useWorkspace();
   if (!snapshot) return null;
   const results = snapshot.workflow.filter((link) => link.result !== null);
   return (
     <>
       <PageHeading
-        title="Results"
-        subtitle="Received work and its provenance. Receipt does not imply acceptance."
+        title={t("Results")}
+        subtitle={t(
+          "Received work and its provenance. Receipt does not imply acceptance.",
+        )}
       />
       {results.length ? (
         <div className="row-list">
@@ -30,7 +34,7 @@ export function Results() {
                 <span>
                   <strong>
                     {snapshot.tasks.find((t) => t.id === assignment.task_id)
-                      ?.title ?? "Missing task"}
+                      ?.title ?? t("Missing task")}
                   </strong>
                   <small>
                     {agentFor(snapshot, assignment)?.name} ·{" "}
@@ -41,24 +45,28 @@ export function Results() {
                     }
                   </small>
                   <small>
-                    {modelLabel(result.receipt.model_id)} ·{" "}
-                    {result.artifacts.map((a) => stateLabel(a.kind)).join(", ")}
+                    {modelLabel(result.receipt.model_id, t)} ·{" "}
+                    {result.artifacts
+                      .map((a) => stateLabel(a.kind, t))
+                      .join(", ")}
                   </small>
-                  <small>{usageLabel(result.receipt.usage)}</small>
+                  <small>{usageLabel(result.receipt.usage, t)}</small>
                 </span>
                 <span>
-                  Verification:
-                  <br />
-                  {stateLabel(result.receipt.verification.decision)}
+                  {" "}
+                  {t("Verification:")} <br />
+                  {stateLabel(result.receipt.verification.decision, t)}
                 </span>
               </button>
             );
           })}
         </div>
       ) : (
-        <Empty title="No results received yet.">
-          Prepare instructions for assigned work, copy them to your external AI,
-          then paste or import its result.
+        <Empty title={t("No results received yet.")}>
+          {" "}
+          {t(
+            "Prepare instructions for assigned work, copy them to your external AI, then paste or import its result.",
+          )}{" "}
         </Empty>
       )}
     </>

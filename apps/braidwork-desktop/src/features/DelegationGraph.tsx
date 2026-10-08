@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/context";
 import { useEffect, useMemo } from "react";
 import {
   ReactFlow,
@@ -33,10 +34,11 @@ function WorkNode({ data, selected }: NodeProps<AssignmentNode>) {
 }
 const nodeTypes = { assignment: WorkNode };
 export function DelegationGraph() {
+  const { t } = useI18n();
   const { snapshot, select } = useWorkspace();
   const graph = useMemo(
-    () => (snapshot ? delegationGraph(snapshot) : { nodes: [], edges: [] }),
-    [snapshot],
+    () => (snapshot ? delegationGraph(snapshot, t) : { nodes: [], edges: [] }),
+    [snapshot, t],
   );
   const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
@@ -57,22 +59,59 @@ export function DelegationGraph() {
   }, [graph, setNodes, setEdges]);
   if (!snapshot?.assignments.length)
     return (
-      <Empty title="No assigned work to connect.">
-        Create assignments, then record an explicit delegation between them.
+      <Empty title={t("No assigned work to connect.")}>
+        {" "}
+        {t(
+          "Create assignments, then record an explicit delegation between them.",
+        )}{" "}
       </Empty>
     );
   return (
     <>
       <p className="muted">
-        Nodes are assignments. Edges record who delegated work to whom. Task
-        dependencies are separate.
+        {" "}
+        {t(
+          "Nodes are assignments. Edges record who delegated work to whom. Task dependencies are separate.",
+        )}{" "}
       </p>
       <div
         className="graph"
         role="region"
-        aria-label="Recorded assignment delegations"
+        aria-label={t("Recorded assignment delegations")}
       >
         <ReactFlow
+          ariaLabelConfig={{
+            "controls.ariaLabel": t("Graph controls"),
+            "node.a11yDescription.default": t(
+              "Enter or Space selects an assignment. Arrow keys move it; Escape clears selection.",
+            ),
+            "node.a11yDescription.keyboardDisabled": t(
+              "Enter or Space selects an assignment. Arrow keys move it; Escape clears selection.",
+            ),
+            "edge.a11yDescription.default": t(
+              "Enter or Space selects a delegation. Escape clears selection.",
+            ),
+            "node.a11yDescription.ariaLiveMessage": ({ direction, x, y }) =>
+              t("Moved assignment {direction}. Position: {x}, {y}.", {
+                direction:
+                  direction === "left"
+                    ? t("left")
+                    : direction === "right"
+                      ? t("right")
+                      : direction === "up"
+                        ? t("up")
+                        : direction === "down"
+                          ? t("down")
+                          : direction,
+                x,
+                y,
+              }),
+            "handle.ariaLabel": t("Connection point"),
+            "controls.zoomIn.ariaLabel": t("Zoom in"),
+            "controls.zoomOut.ariaLabel": t("Zoom out"),
+            "controls.fitView.ariaLabel": t("Fit view"),
+            "minimap.ariaLabel": t("Delegation graph"),
+          }}
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}

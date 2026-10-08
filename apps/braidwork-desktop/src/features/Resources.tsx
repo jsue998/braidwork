@@ -1,21 +1,25 @@
+import { useI18n } from "../i18n/context";
 import { Plus } from "lucide-react";
 import { useWorkspace } from "../app/context";
 import { sessionsByResource, stateLabel } from "../lib/derive";
 import { Badge, Empty, PageHeading } from "../components/Common";
 export function Resources() {
+  const { t } = useI18n();
   const { snapshot, select, showForm } = useWorkspace();
   if (!snapshot) return null;
   return (
     <>
       <PageHeading
-        title="AI resources"
-        subtitle="The AI access you already have. No credentials or provider connections required."
+        title={t("AI resources")}
+        subtitle={t(
+          "The AI access you already have. No credentials or provider connections required.",
+        )}
         action={
           <button
             className="primary"
             onClick={() => showForm({ kind: "resource" })}
           >
-            <Plus size={16} /> Create resource
+            <Plus size={16} /> {t("Create resource")}{" "}
           </button>
         }
       />
@@ -24,11 +28,11 @@ export function Resources() {
           <table>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Access</th>
-                <th>Scarcity</th>
-                <th>Status</th>
-                <th>Sessions</th>
+                <th>{t("Name")}</th>
+                <th>{t("Access")}</th>
+                <th>{t("Scarcity")}</th>
+                <th>{t("Status")}</th>
+                <th>{t("Sessions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -45,8 +49,8 @@ export function Resources() {
                     </button>
                     <small>{resource.provider}</small>
                   </td>
-                  <td>{stateLabel(resource.access_mode)}</td>
-                  <td>{stateLabel(resource.scarcity)}</td>
+                  <td>{stateLabel(resource.access_mode, t)}</td>
+                  <td>{stateLabel(resource.scarcity, t)}</td>
                   <td>
                     <Badge state={resource.status} />
                   </td>
@@ -58,15 +62,18 @@ export function Resources() {
         </div>
       ) : (
         <Empty
-          title="No AI resources yet."
+          title={t("No AI resources yet.")}
           action={
             <button onClick={() => showForm({ kind: "resource" })}>
-              Create resource
+              {" "}
+              {t("Create resource")}{" "}
             </button>
           }
         >
-          Describe an account, API, harness, or local model access. Quotas are
-          not inferred.
+          {" "}
+          {t(
+            "Describe an account, API, harness, or local model access. Quotas are not inferred.",
+          )}{" "}
         </Empty>
       )}
     </>

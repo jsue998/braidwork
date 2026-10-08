@@ -1,3 +1,5 @@
+import type { MessageKey } from "../i18n";
+import { useI18n } from "../i18n/context";
 import { useEffect, useState, type FormEvent } from "react";
 import { Copy, ExternalLink, FileUp, Send } from "lucide-react";
 import { useWorkspace } from "../app/context";
@@ -34,6 +36,7 @@ const artifactKinds: ArtifactKind[] = [
   "test_result",
 ];
 export function ManualWorkflow({ assignmentId }: { assignmentId: string }) {
+  const { t } = useI18n();
   const { revision, busy, mutate, report, notify } = useWorkspace();
   const [detail, setDetail] = useState<AssignmentDetail | null>(null);
   const [error, setError] = useState<IpcError | null>(null);
@@ -58,7 +61,10 @@ export function ManualWorkflow({ assignmentId }: { assignmentId: string }) {
       active = false;
     };
   }, [assignmentId, revision]);
-  const perform = async (action: () => Promise<unknown>, message: string) => {
+  const perform = async (
+    action: () => Promise<unknown>,
+    message: MessageKey,
+  ) => {
     try {
       await action();
       notify(message);
@@ -67,40 +73,45 @@ export function ManualWorkflow({ assignmentId }: { assignmentId: string }) {
     }
   };
   if (error) return <ErrorNotice error={error} />;
-  if (loading || !detail) return <p role="status">Loading assigned work…</p>;
+  if (loading || !detail)
+    return <p role="status">{t("Loading assigned work…")}</p>;
   return (
     <div className="workflow">
       <h2>{detail.task.title}</h2>
       <p className="muted">
         {detail.agent.name} · {detail.session.label}
       </p>
-      <ol className="workflow-steps" aria-label="Manual workflow">
-        <li>Assigned</li>
-        <li className={detail.instructions ? "recorded" : ""}>Instructions</li>
+      <ol className="workflow-steps" aria-label={t("Manual workflow")}>
+        <li>{t("Assigned")}</li>
+        <li className={detail.instructions ? "recorded" : ""}>
+          {t("Instructions")}
+        </li>
         <li
           className={detail.assignment.status !== "prepared" ? "recorded" : ""}
         >
-          Dispatch
+          {" "}
+          {t("Dispatch")}{" "}
         </li>
-        <li className={detail.result ? "recorded" : ""}>Result</li>
+        <li className={detail.result ? "recorded" : ""}>{t("Result")}</li>
       </ol>
       <dl>
-        <dt>State</dt>
-        <dd>{assignmentLabel(detail.assignment.status)}</dd>
-        <dt>Resource</dt>
+        <dt>{t("State")}</dt>
+        <dd>{assignmentLabel(detail.assignment.status, t)}</dd>
+        <dt>{t("Resource")}</dt>
         <dd>{detail.resource.name}</dd>
-        <dt>Agent revision</dt>
+        <dt>{t("Agent revision")}</dt>
         <dd>
           {detail.agent.name} · {detail.agent.revision}
         </dd>
       </dl>
       <section className="inspector-section">
-        <h3>Instructions</h3>
+        <h3>{t("Instructions")}</h3>
         {detail.instructions ? (
           <>
             <p className="muted">
-              Declared budget: {detail.instructions.max_estimated_tokens}{" "}
-              estimated tokens. Not counted.
+              {" "}
+              {t("Declared budget:")} {detail.instructions.max_estimated_tokens}{" "}
+              {t("estimated tokens. Not counted.")}{" "}
             </p>
             <ContentPreview text={detail.instructions.rendered} instructions />
             <div className="actions">
@@ -112,7 +123,7 @@ export function ManualWorkflow({ assignmentId }: { assignmentId: string }) {
                   )
                 }
               >
-                <Copy size={15} /> Copy instructions
+                <Copy size={15} /> {t("Copy instructions")}{" "}
               </button>
             </div>
           </>
@@ -123,22 +134,27 @@ export function ManualWorkflow({ assignmentId }: { assignmentId: string }) {
           />
         ) : (
           <>
-            <p>Snapshot the context and outputs this specialist needs.</p>
+            <p>
+              {t("Snapshot the context and outputs this specialist needs.")}
+            </p>
             <button
               className="primary"
               disabled={busy}
               onClick={() => setPreparing(true)}
             >
-              Prepare instructions
+              {" "}
+              {t("Prepare instructions")}{" "}
             </button>
           </>
         )}
       </section>
       <section className="inspector-section">
-        <h3>Dispatch</h3>
+        <h3>{t("Dispatch")}</h3>
         <p className="muted">
-          Copy the instructions into your external AI session. Braidwork does
-          not contact the provider.
+          {" "}
+          {t(
+            "Copy the instructions into your external AI session. Braidwork does not contact the provider.",
+          )}{" "}
         </p>
         {detail.session.external_ref && (
           <>
@@ -153,7 +169,7 @@ export function ManualWorkflow({ assignmentId }: { assignmentId: string }) {
                     )
                   }
                 >
-                  <ExternalLink size={15} /> Open external chat
+                  <ExternalLink size={15} /> {t("Open external chat")}{" "}
                 </button>
               ) : (
                 <button
@@ -164,7 +180,7 @@ export function ManualWorkflow({ assignmentId }: { assignmentId: string }) {
                     )
                   }
                 >
-                  <Copy size={15} /> Copy reference
+                  <Copy size={15} /> {t("Copy reference")}{" "}
                 </button>
               )}
             </div>
@@ -182,43 +198,46 @@ export function ManualWorkflow({ assignmentId }: { assignmentId: string }) {
               )
             }
           >
-            <Send size={15} /> Mark dispatched
+            <Send size={15} /> {t("Mark dispatched")}{" "}
           </button>
         )}
         {detail.assignment.status === "dispatched" && (
-          <p>Dispatch recorded. Waiting for you to import the response.</p>
+          <p>
+            {t("Dispatch recorded. Waiting for you to import the response.")}
+          </p>
         )}
       </section>
       <section className="inspector-section">
-        <h3>Result</h3>
+        <h3>{t("Result")}</h3>
         {detail.result ? (
           <>
-            <p className="result-received">Result received</p>
+            <p className="result-received">{t("Result received")}</p>
             <ResultInspector assignmentId={assignmentId} />
           </>
         ) : detail.instructions ? (
           <IngestForm assignmentId={assignmentId} />
         ) : (
           <p className="muted">
-            Prepare instructions before importing a response.
+            {" "}
+            {t("Prepare instructions before importing a response.")}{" "}
           </p>
         )}
       </section>
       <Technical>
         <dl>
-          <dt>Assignment</dt>
+          <dt>{t("Assignment")}</dt>
           <dd>{detail.assignment.id}</dd>
-          <dt>Task</dt>
+          <dt>{t("Task")}</dt>
           <dd>{detail.task.id}</dd>
-          <dt>Session</dt>
+          <dt>{t("Session")}</dt>
           <dd>{detail.session.id}</dd>
-          <dt>Agent</dt>
+          <dt>{t("Agent")}</dt>
           <dd>
             {detail.agent.id}@{detail.agent.revision}
           </dd>
           {detail.instructions && (
             <>
-              <dt>Capsule</dt>
+              <dt>{t("Capsule")}</dt>
               <dd>{detail.instructions.capsule_id}</dd>
             </>
           )}
@@ -234,6 +253,7 @@ function PrepareForm({
   assignmentId: string;
   done: () => void;
 }) {
+  const { t } = useI18n();
   const { busy, mutate, report } = useWorkspace();
   const [files, setFiles] = useState<string[]>([]);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -245,7 +265,13 @@ function PrepareForm({
         () =>
           api.prepare(assignmentId, {
             inputs: context
-              ? [{ kind: "inline", label: "Selected context", text: context }]
+              ? [
+                  {
+                    kind: "inline",
+                    label: t("Selected context"),
+                    text: context,
+                  },
+                ]
               : [],
             context_files: files,
             constraints: lines(String(data.get("constraints") ?? "")),
@@ -267,7 +293,7 @@ function PrepareForm({
   };
   const pick = async () => {
     try {
-      const chosen = await chooseFiles(true);
+      const chosen = await chooseFiles(true, t("Choose context files (UTF-8)"));
       if (chosen.length)
         setFiles((previous) => [...new Set([...previous, ...chosen])]);
     } catch (error) {
@@ -276,71 +302,76 @@ function PrepareForm({
   };
   return (
     <form className="compact-form" onSubmit={(event) => void submit(event)}>
-      <Field label="Context text">
+      <Field label={t("Context text")}>
         {(id) => <textarea id={id} name="context" rows={4} />}
       </Field>
       <button type="button" onClick={() => void pick()}>
-        <FileUp size={15} /> Choose context files
+        <FileUp size={15} /> {t("Choose context files")}{" "}
       </button>
       {files.length > 0 && (
         <div className="file-selection">
           <p>
-            {files.length} selected UTF-8 files (read in Rust and snapshotted
-            inline)
+            {files.length}{" "}
+            {t(
+              "selected UTF-8 files (read in Rust and snapshotted inline)",
+            )}{" "}
           </p>
           {files.map((path) => (
             <div className="selected-file" key={path}>
               <span>{path}</span>
               <button
                 type="button"
-                aria-label={`Remove ${path}`}
+                aria-label={t("Remove {path}", { path })}
                 onClick={() =>
                   setFiles((files) => files.filter((file) => file !== path))
                 }
               >
-                Remove
+                {" "}
+                {t("Remove")}{" "}
               </button>
             </div>
           ))}
         </div>
       )}
-      <Field label="Constraints" hint="One per line.">
+      <Field label={t("Constraints")} hint={t("One per line.")}>
         {(id) => <textarea id={id} name="constraints" rows={2} />}
       </Field>
       <Field
-        label="Acceptance criteria"
-        hint="One per line. Import does not verify these automatically."
+        label={t("Acceptance criteria")}
+        hint={t("One per line. Import does not verify these automatically.")}
       >
         {(id) => <textarea id={id} name="acceptance" rows={2} />}
       </Field>
-      <Field label="Expected output kind">
+      <Field label={t("Expected output kind")}>
         {(id) => (
           <select id={id} name="kind" defaultValue="text">
             {artifactKinds.map((kind) => (
               <option key={kind} value={kind}>
-                {stateLabel(kind)}
+                {stateLabel(kind, t)}
               </option>
             ))}
           </select>
         )}
       </Field>
       <Field
-        label="Expected outputs"
-        hint="One description per line, using the selected kind."
+        label={t("Expected outputs")}
+        hint={t("One description per line, using the selected kind.")}
       >
         {(id) => (
           <textarea
             id={id}
             name="output"
             required
-            defaultValue="Provide the task result"
+            defaultValue={t("Provide the task result")}
             rows={2}
           />
         )}
       </Field>
       <Field
-        label="Context budget (estimated tokens)"
-        hint="Provider-independent declaration. Zero permits no selected context."
+        label={t("Context budget (estimated tokens)")}
+        hint={t(
+          "Provider-independent declaration. Zero permits no selected context.",
+        )}
       >
         {(id) => (
           <input
@@ -355,16 +386,18 @@ function PrepareForm({
       </Field>
       <div className="actions">
         <button type="button" disabled={busy} onClick={done}>
-          Cancel
+          {" "}
+          {t("Cancel")}{" "}
         </button>
         <button type="submit" className="primary" disabled={busy}>
-          {busy ? "Preparing…" : "Prepare instructions"}
+          {busy ? t("Preparing…") : t("Prepare instructions")}
         </button>
       </div>
     </form>
   );
 }
 function IngestForm({ assignmentId }: { assignmentId: string }) {
+  const { t } = useI18n();
   const { busy, mutate, report } = useWorkspace();
   const [mode, setMode] = useState<"text" | "file">("text");
   const [path, setPath] = useState<string | null>(null);
@@ -403,7 +436,7 @@ function IngestForm({ assignmentId }: { assignmentId: string }) {
   };
   const pick = async () => {
     try {
-      const [file] = await chooseFiles(false);
+      const [file] = await chooseFiles(false, t("Choose a result file"));
       if (file) setPath(file);
     } catch (error) {
       report(error);
@@ -411,94 +444,105 @@ function IngestForm({ assignmentId }: { assignmentId: string }) {
   };
   return (
     <form className="compact-form" onSubmit={(event) => void submit(event)}>
-      <div className="tabs" aria-label="Result source">
+      <div className="tabs" aria-label={t("Result source")}>
         <button
           type="button"
           aria-current={mode === "text" ? "page" : undefined}
           onClick={() => setMode("text")}
         >
-          Paste text
+          {" "}
+          {t("Paste text")}{" "}
         </button>
         <button
           type="button"
           aria-current={mode === "file" ? "page" : undefined}
           onClick={() => setMode("file")}
         >
-          Import file
+          {" "}
+          {t("Import file")}{" "}
         </button>
       </div>
       {mode === "text" ? (
-        <Field label="External AI result">
+        <Field label={t("External AI result")}>
           {(id) => (
             <textarea
               id={id}
               name="result"
               required
               rows={7}
-              placeholder="Paste the actual response here…"
+              placeholder={t("Paste the actual response here…")}
             />
           )}
         </Field>
       ) : (
         <>
           <button type="button" onClick={() => void pick()}>
-            <FileUp size={15} /> Choose result file
+            <FileUp size={15} /> {t("Choose result file")}{" "}
           </button>
-          <p className="reference">{path ?? "No file selected"}</p>
+          <p className="reference">{path ?? t("No file selected")}</p>
         </>
       )}
       <details>
-        <summary>Advanced observations</summary>
-        <Field label="Model ID (optional)">
+        <summary>{t("Advanced observations")}</summary>
+        <Field label={t("Model ID (optional)")}>
           {(id) => <input id={id} name="model" />}
         </Field>
-        <Field label="Artifact kind">
+        <Field label={t("Artifact kind")}>
           {(id) => (
             <select id={id} name="kind" defaultValue="text">
               {artifactKinds.map((kind) => (
                 <option key={kind} value={kind}>
-                  {stateLabel(kind)}
+                  {stateLabel(kind, t)}
                 </option>
               ))}
             </select>
           )}
         </Field>
-        <Field label="Media type">
+        <Field label={t("Media type")}>
           {(id) => <input id={id} name="media" defaultValue="text/markdown" />}
         </Field>
         {[
-          ["input_tokens", "Input tokens"],
-          ["output_tokens", "Output tokens"],
-          ["cost", "Cost micros"],
+          ["input_tokens", t("Input tokens")],
+          ["output_tokens", t("Output tokens")],
+          ["cost", t("Cost micros")],
         ].map(([name, label]) => (
-          <Field key={name} label={`${label} (optional)`}>
+          <Field
+            key={name}
+            label={t("{label} (optional)", { label: label ?? "" })}
+          >
             {(id) => (
               <input id={id} name={name} inputMode="numeric" pattern="[0-9]+" />
             )}
           </Field>
         ))}
-        <Field label="Currency (required if cost is known)">
-          {(id) => <input id={id} name="currency" placeholder="USD" />}
+        <Field label={t("Currency (required if cost is known)")}>
+          {(id) => <input id={id} name="currency" placeholder={t("USD")} />}
         </Field>
         <p className="muted">
-          Leave unknown observations empty. A recorded zero is a known zero.
+          {" "}
+          {t(
+            "Leave unknown observations empty. A recorded zero is a known zero.",
+          )}{" "}
         </p>
       </details>
       <p className="muted">
-        This records a received result. Verification is not performed; task
-        status stays unchanged.
+        {" "}
+        {t(
+          "This records a received result. Verification is not performed; task status stays unchanged.",
+        )}{" "}
       </p>
       <button
         className="primary"
         type="submit"
         disabled={busy || (mode === "file" && !path)}
       >
-        {busy ? "Importing…" : "Ingest result"}
+        {busy ? t("Importing…") : t("Ingest result")}
       </button>
     </form>
   );
 }
 export function ResultInspector({ assignmentId }: { assignmentId: string }) {
+  const { t } = useI18n();
   const { revision } = useWorkspace();
   const [detail, setDetail] = useState<ResultDetail | null>(null);
   const [error, setError] = useState<IpcError | null>(null);
@@ -523,54 +567,60 @@ export function ResultInspector({ assignmentId }: { assignmentId: string }) {
     };
   }, [assignmentId, revision]);
   if (error) return <ErrorNotice error={error} />;
-  if (loading || !detail) return <p role="status">Loading result…</p>;
+  if (loading || !detail) return <p role="status">{t("Loading result…")}</p>;
   const receipt = detail.receipt;
   return (
     <>
       <dl>
-        <dt>Model</dt>
-        <dd>{modelLabel(receipt.model_id)}</dd>
-        <dt>Execution</dt>
-        <dd>{stateLabel(receipt.execution.outcome)}</dd>
-        <dt>Verification</dt>
-        <dd>{stateLabel(receipt.verification.decision)}</dd>
-        <dt>Transport</dt>
-        <dd>{stateLabel(receipt.access_mode)}</dd>
+        <dt>{t("Model")}</dt>
+        <dd>{modelLabel(receipt.model_id, t)}</dd>
+        <dt>{t("Execution")}</dt>
+        <dd>{stateLabel(receipt.execution.outcome, t)}</dd>
+        <dt>{t("Verification")}</dt>
+        <dd>{stateLabel(receipt.verification.decision, t)}</dd>
+        <dt>{t("Transport")}</dt>
+        <dd>{stateLabel(receipt.access_mode, t)}</dd>
       </dl>
-      <p className="muted">{usageLabel(receipt.usage)}</p>
+      <p className="muted">{usageLabel(receipt.usage, t)}</p>
       {detail.artifacts.map((preview) => (
         <section className="inspector-section" key={preview.artifact.id}>
-          <h3>{stateLabel(preview.artifact.kind)}</h3>
+          <h3>{stateLabel(preview.artifact.kind, t)}</h3>
           <p className="muted">
-            {preview.artifact.media_type ?? "Unknown media type"} ·{" "}
-            {preview.artifact.size_bytes ?? "Unknown"} bytes
+            {preview.artifact.media_type ?? t("Unknown media type")} ·{" "}
+            {preview.artifact.size_bytes ?? t("Unknown")} {t("bytes")}{" "}
           </p>
           {preview.status === "text" ? (
             <ContentPreview text={preview.text ?? ""} />
           ) : (
             <p className="preview-unavailable">
               {preview.status === "too_large"
-                ? "Preview not loaded because this result is large (over 1 MiB)."
+                ? t(
+                    "Preview not loaded because this result is large (over 1 MiB).",
+                  )
                 : preview.status === "binary"
-                  ? "Preview not loaded: media type is not known to be text-like."
-                  : "Preview not loaded: content is not valid UTF-8."}{" "}
-              The complete artifact remains on disk.
+                  ? t(
+                      "Preview not loaded: media type is not known to be text-like.",
+                    )
+                  : t("Preview not loaded: content is not valid UTF-8.")}{" "}
+              {t("The complete artifact remains on disk.")}{" "}
             </p>
           )}
           <Technical>
-            <p>Artifact: {preview.artifact.id}</p>
+            <p>
+              {t("Artifact:")} {preview.artifact.id}
+            </p>
           </Technical>
         </section>
       ))}
       <Technical>
         <dl>
-          <dt>Receipt</dt>
+          <dt>{t("Receipt")}</dt>
           <dd>{receipt.id}</dd>
-          <dt>Task</dt>
+          <dt>{t("Task")}</dt>
           <dd>{receipt.task_id}</dd>
-          <dt>Capsule</dt>
+          <dt>{t("Capsule")}</dt>
           <dd>{receipt.capsule_id}</dd>
-          <dt>Resource</dt>
+          <dt>{t("Resource")}</dt>
           <dd>{receipt.resource_id}</dd>
         </dl>
       </Technical>

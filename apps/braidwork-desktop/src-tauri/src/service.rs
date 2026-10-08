@@ -33,6 +33,39 @@ pub struct DesktopService {
     state: ProjectState,
 }
 impl DesktopService {
+    /// Creates a new child directory and initializes a project there.
+    ///
+    /// Human metadata is preserved; folder names are validated for portability.
+    /// A failed initialization removes only a still-empty new directory and
+    /// preserves both the original error and the previously active project.
+    ///
+    /// # Errors
+    /// Returns invalid-name/folder/parent, destination-exists, I/O, or project errors.
+    pub fn create_project(
+        &self,
+        parent_directory: &Path,
+        folder_name: &str,
+        display_name: &str,
+    ) -> Result<ProjectInfo, IpcError> {
+        if display_name.trim().is_empty() {
+            return Err(ProjectError::InvalidName.into());
+        }
+        let root = crate::creation::destination(parent_directory, folder_name)?;
+        let mut active = self.state.lock()?;
+        crate::creation::create_directory(&root)?;
+        let initialized = Project::init(&root, Some(display_name));
+        let project = match initialized {
+            Ok(project) => project,
+            Err(error) => {
+                // remove_dir never removes nonempty content, including partial init state.
+                let _ = fs::remove_dir(&root);
+                return Err(error.into());
+            }
+        };
+        let info = project_info(&project)?;
+        *active = Some(project.root().to_owned());
+        Ok(info)
+    }
     /// Initializes a real project and selects it only after successful initialization.
     ///
     /// # Errors

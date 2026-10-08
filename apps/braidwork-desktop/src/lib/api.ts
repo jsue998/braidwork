@@ -58,8 +58,8 @@ async function call<T>(
 }
 export const api = {
   open: (root: string) => call<ProjectInfo>("open_project", { root }),
-  init: (root: string, name: string) =>
-    call<ProjectInfo>("init_project", { root, name }),
+  init: (parent_directory: string, folder_name: string, display_name: string) =>
+    call<ProjectInfo>("create_project", { parent_directory, folder_name, display_name }),
   close: () => call<void>("close_project"),
   snapshot: () => call<Snapshot>("workspace_snapshot"),
   resource: (input: ResourceInput) =>

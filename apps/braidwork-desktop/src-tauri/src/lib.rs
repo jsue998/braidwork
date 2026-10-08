@@ -4,6 +4,7 @@
 //! enables the native Tauri host; Tauri development/build commands enable it.
 #[cfg(feature = "desktop")]
 mod commands;
+mod creation;
 pub mod dto;
 pub mod error;
 pub mod service;

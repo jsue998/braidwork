@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/context";
 import {
   LayoutDashboard,
   UsersRound,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useWorkspace, type View } from "../app/context";
+import { Preferences } from "./Preferences";
 import { ErrorNotice } from "./Common";
 import { Inspector } from "../features/Inspector";
 const navigation = [
@@ -20,6 +22,7 @@ const navigation = [
   { view: "Results", icon: FileCheck2 },
 ] satisfies { view: View; icon: typeof LayoutDashboard }[];
 export function AppShell({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const {
     snapshot,
     view,
@@ -39,43 +42,44 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <strong className="wordmark">Braidwork</strong>
+        <strong className="wordmark">{t("Braidwork")}</strong>
         <div className="project-heading">
           <strong>{snapshot.project.name}</strong>
           <span title={snapshot.project.root}>{snapshot.project.root}</span>
         </div>
         <div className="actions">
+          <Preferences />
           <button
             className="icon-button"
             disabled={busy || loading}
-            aria-label="Refresh project"
-            title="Refresh project"
+            aria-label={t("Refresh project")}
+            title={t("Refresh project")}
             onClick={() => void refresh()}
           >
             <RefreshCw size={17} />
           </button>
           <button disabled={busy} onClick={() => void close()}>
-            <PanelLeftClose size={16} /> Close project
+            <PanelLeftClose size={16} /> {t("Close project")}{" "}
           </button>
         </div>
       </header>
       <div className="workspace-layout">
-        <nav className="sidebar" aria-label="Main navigation">
-          <p className="eyebrow">WORKSPACE</p>
+        <nav className="sidebar" aria-label={t("Main navigation")}>
+          <p className="eyebrow">{t("WORKSPACE")}</p>
           {navigation.map(({ view: item, icon: Icon }) => (
             <button
-              key={item}
+              key={t(item)}
               aria-current={item === view ? "page" : undefined}
               onClick={() => setView(item)}
             >
               <Icon size={18} />
-              {item}
+              {t(item)}
             </button>
           ))}
           <div className="sidebar-note">
-            Your project owns the state.
-            <br />
-            AI receives the instructions.
+            {" "}
+            {t("Your project owns the state.")} <br />{" "}
+            {t("AI receives the instructions.")}{" "}
           </div>
         </nav>
         <main className="workspace-main">
@@ -84,7 +88,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
           {loading && (
             <p className="loading-line" role="status">
-              Refreshing canonical project state…
+              {" "}
+              {t("Refreshing canonical project state…")}{" "}
             </p>
           )}
           {children}
@@ -93,11 +98,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       {feedback && (
         <div className="feedback" role="status">
-          <span>{feedback}</span>
+          <span>{t(feedback)}</span>
           <button
             className="icon-button"
-            aria-label="Dismiss notification"
-            onClick={() => notify("")}
+            aria-label={t("Dismiss notification")}
+            onClick={() => notify(null)}
           >
             <X size={15} />
           </button>

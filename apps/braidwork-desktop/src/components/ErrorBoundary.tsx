@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/context";
 import { Component, type ReactNode } from "react";
 export class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -9,18 +10,27 @@ export class ErrorBoundary extends Component<
   }
   render() {
     return this.state.error ? (
-      <main className="start-screen">
-        <h1>Something went wrong</h1>
-        <p>Close and reopen Braidwork. Your project remains on disk.</p>
-        {import.meta.env.DEV && (
-          <details>
-            <summary>Technical details</summary>
-            <pre>{this.state.error.message}</pre>
-          </details>
-        )}
-      </main>
+      <RenderFailure error={this.state.error} />
     ) : (
       this.props.children
     );
   }
+}
+
+function RenderFailure({ error }: { error: Error }) {
+  const { t } = useI18n();
+  return (
+    <main className="start-screen">
+      <div className="start-content">
+        <h1>{t("Something went wrong")}</h1>
+        <p>{t("Close and reopen Braidwork. Your project remains on disk.")}</p>
+        {import.meta.env.DEV && (
+          <details>
+            <summary>{t("Technical details")}</summary>
+            <pre>{error.message}</pre>
+          </details>
+        )}
+      </div>
+    </main>
+  );
 }
